@@ -21,7 +21,7 @@ test('standalone preview works without API, assets or hosting', async ({ page })
   await page.getByRole('button', { name: 'Наша история', exact: true }).click();
   await expect(page.locator('.history-event', { hasText: 'Проверяем нашу страницу' })).toBeVisible();
   await page.getByRole('button', { name: 'Идеи для свиданий', exact: true }).click();
-  await expect(page.locator('.idea-card')).toHaveCount(6);
+  await expect(page.locator('.atmosphere-card')).toHaveCount(10);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
@@ -44,7 +44,7 @@ test('preview script survives the GitHub HTML Preview tag rewriting', async ({ p
   });
   await expect(page.getByRole('heading', { name: 'Время для нас' })).toBeVisible();
   await page.getByRole('button', { name: 'Идеи для свиданий', exact: true }).click();
-  await expect(page.locator('.idea-card')).toHaveCount(6);
+  await expect(page.locator('.atmosphere-card')).toHaveCount(10);
   expect(errors).toEqual([]);
 });
 
@@ -87,4 +87,62 @@ test('preview lets users switch relationship focus, log intimacy and try private
   await expect(page.locator('.relationship-banner')).toContainText('Встречаемся');
   expect(errors).toEqual([]);
   expect(requests).toEqual([]);
+});
+
+test('archive atmospheres, custom page, demo recipient response and calendar survive navigation', async ({ page }) => {
+  test.setTimeout(90000);
+  const errors: string[] = [];
+  const external: string[] = [];
+  page.on('pageerror', err => errors.push(err.message));
+  page.on('request', req => { if (/^https?:/.test(req.url()) && req.url() !== 'http://127.0.0.1:3200/') external.push(req.url()); });
+  await page.setViewportSize({ width: 1440, height: 1050 });
+  await page.goto('/'); await page.getByRole('button', { name: 'Идеи для свиданий', exact: true }).click();
+  await expect(page.locator('.atmosphere-card')).toHaveCount(10);
+  await page.screenshot({ path: 'preview-test-results/atmospheres-desktop.png', fullPage: true });
+  const themes = ['adrenaline', 'pink-dream', 'city-night', 'cozy-home', 'gourmet', 'nature', 'retro', 'quest', 'art', 'luxury'];
+  for (const theme of themes) {
+    await page.locator(`.atmosphere-card .theme-${theme}`).getByRole('button', { name: 'Настроить свидание' }).click();
+    await page.getByRole('button', { name: 'Предпросмотр', exact: true }).click();
+    await expect(page.locator('.scenario-player .date-theme')).toHaveAttribute('data-theme', theme);
+    expect(await page.locator('.scenario-player .date-theme').evaluate(el => getComputedStyle(el).backgroundImage)).not.toBe('none');
+    await page.getByRole('button', { name: 'Да, я в деле', exact: true }).click();
+    await expect(page.locator('.scenario-player .date-theme')).toHaveAttribute('data-theme', theme);
+    await page.getByRole('button', { name: 'Вернуться в редактор', exact: true }).click();
+    await page.getByRole('button', { name: 'К атмосферам', exact: true }).click();
+  }
+  await page.locator('.theme-pink-dream').getByRole('button', { name: 'Настроить свидание' }).click();
+  await page.getByLabel('Название свидания', { exact: true }).fill('Наш розовый вечер');
+  await page.getByRole('button', { name: 'Добавить страницу после этой', exact: true }).click();
+  await page.getByLabel('Заголовок страницы').fill('Маленький сюрприз');
+  await page.getByLabel('Текст страницы').fill('Эта новая страница тоже нежно-розовая.');
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Отправить приглашение', exact: true }).click();
+  await expect(page.locator('.invitation-card')).toContainText('Наш розовый вечер');
+  await page.getByRole('button', { name: 'Я — второй партнёр', exact: true }).click();
+  await page.getByRole('button', { name: 'Открыть приглашение', exact: true }).click();
+  await page.getByRole('button', { name: 'Да, я в деле', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Маленький сюрприз', exact: true })).toBeVisible();
+  await expect(page.locator('.date-theme')).toHaveAttribute('data-theme', 'pink-dream');
+  await page.locator('.stage-action').click(); await page.locator('.stage-action').click();
+  await page.getByRole('button', { name: /Ботанический сад/ }).click(); await page.locator('.stage-action').click();
+  await page.getByRole('button', { name: /Маленький пикник/ }).click(); await page.locator('.stage-action').click();
+  await page.locator('.stage-action').click();
+  await page.getByLabel('Ваш ответ').fill('Возьмём плед'); await page.locator('.stage-action').click();
+  await page.getByRole('button', { name: 'Принять приглашение', exact: true }).click();
+  await page.getByRole('button', { name: 'К приглашениям', exact: true }).click();
+  await page.getByRole('button', { name: 'Я — первый партнёр', exact: true }).click();
+  await expect(page.locator('.response-summary')).toContainText('Возьмём плед');
+  await page.getByRole('button', { name: 'Наш календарь', exact: true }).click();
+  await page.getByRole('button', { name: 'Идеи для свиданий', exact: true }).click();
+  await page.getByRole('tab', { name: /Созданные/ }).click();
+  await expect(page.locator('.response-summary')).toContainText('Маленький сюрприз');
+  await page.getByRole('button', { name: 'Открыть свидание в календаре', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('Ботанический сад');
+  await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('group', { name: 'Фильтр календаря' }).getByRole('button', { name: /Все встречи/ }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+  expect(external).toEqual([]);
 });

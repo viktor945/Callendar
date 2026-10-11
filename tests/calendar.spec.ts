@@ -10,10 +10,10 @@ test('demo calendar, ideas, history and mobile layout', async ({ page }) => {
   await expect(page.locator('.calendar-event')).toHaveCount(5);
   await page.screenshot({ path: 'test-results/calendar-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Идеи для свиданий', exact: true }).click();
-  await expect(page.locator('.idea-card')).toHaveCount(6);
-  await page.getByRole('button', { name: 'В наш календарь', exact: true }).first().click();
-  await expect(page.getByLabel('Название', { exact: true })).toHaveValue('Ужин без повода');
-  await page.getByRole('button', { name: 'Отмена', exact: true }).click();
+  await expect(page.locator('.atmosphere-card')).toHaveCount(10);
+  await page.getByRole('button', { name: 'Настроить свидание', exact: true }).first().click();
+  await expect(page.getByLabel('Название свидания', { exact: true })).toHaveValue('На максималках');
+  await page.getByRole('button', { name: 'К атмосферам', exact: true }).click();
   await page.getByRole('button', { name: 'Наша история', exact: true }).click();
   await expect(page.locator('.history-event')).toHaveCount(1);
   await page.getByRole('button', { name: 'Наш календарь', exact: true }).click();

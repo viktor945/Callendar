@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, existsSync, createReadStream } from 'node:fs';
 import { dirname, resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { dateModule } from './dates.mjs';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 const secret = () => randomBytes(24).toString('base64url');
@@ -98,6 +99,7 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
     if (!event) fail(404, 'Встреча не найдена.');
     return event;
   }
+  const handleDates = dateModule({ db, broadcast, fail });
   let vite;
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || '/', 'http://localhost');
@@ -133,7 +135,8 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
         let raw = '';
         for await (const chunk of req) {
           raw += chunk;
-          if (Buffer.byteLength(raw) > 16384) fail(413, 'Слишком длинная заметка.');
+          const limit = url.pathname.startsWith('/api/dates/') ? 512 * 1024 : 16384;
+          if (Buffer.byteLength(raw) > limit) fail(413, 'Слишком большой запрос.');
         }
         try { body = JSON.parse(raw || '{}'); } catch { fail(400, 'Некорректный запрос.'); }
         if (!body || typeof body !== 'object' || Array.isArray(body)) fail(400, 'Некорректный запрос.');
@@ -179,6 +182,7 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
         return reply(200, state({ id: memberId, pair_id: pair.id }));
       }
       if (!member) fail(401, 'Сначала создайте общий календарь или примите приглашение.');
+      if (handleDates({ member, pathname: url.pathname, method: req.method, body, reply })) return;
       if (url.pathname === '/api/pair/profile' && req.method === 'PATCH') {
         const data = profileInput(body);
         if (!Number.isInteger(body.version) || body.version < 1) fail(400, 'Проверьте версию настроек.');

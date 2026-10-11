@@ -17,6 +17,17 @@
 .calendar-event.date{color:#97536e}.calendar-event.home{color:#795a9e}.calendar-event.adventure{color:#5d7c55}.page-heading p{color:#85798f}.form-intro,.muted,.private-note>p{color:#8b799b}.day-number{color:#756a82}.calendar-filters button{color:#8a7b97}.weekday-row span{color:#8e829b}.weekday-row span:nth-child(n+6){color:#9f8fae}.empty-day p{color:#8c7e99}.detail-note{color:#887298}.sidebar-note>span{color:#8f819e}.idea-teaser p{color:#957b51}.upcoming-meta{color:#897797}.continuation-tag{color:#97709d}
 
 /* Shared relationship settings and the independent intimacy calendar. */
+.calendar-event.kind-date{background:#e6efff;color:#416392;border-color:#cbdcf7;border-left:3px solid #6c95d8}
+.calendar-event.kind-intimacy{background:#f6e1ed;color:#a04d79;border-color:#edc7dc;border-left:3px solid #c876a2}
+.agenda-icon.kind-date{background:#e6efff;color:#416392}.agenda-icon.kind-intimacy{background:#f6e1ed;color:#a04d79}
+.category-dot.date{background:#6c95d8}
+.calendar-event.completed{opacity:1}.calendar-event.completed .event-title{opacity:.78}
+.event-kind-label{display:flex;gap:3px;align-items:center;font-size:7px;font-weight:800;line-height:1.5}
+.event-kind-label>svg:last-child:not(:first-child){margin-left:auto}
+.calendar-legend{display:flex;flex-wrap:wrap;align-items:center;gap:17px;padding:13px 18px;border-top:1px solid var(--border);font-size:9px;color:#8e7a9e}
+.calendar-legend>span{display:flex;align-items:center;gap:5px}.legend-swatch{width:6px;height:6px;border-radius:50%;background:#82a5df}.legend-swatch.intimacy{background:#c67da6}
+.calendar-filters .category-dot.date{background:#6c95d8}.calendar-filters .category-dot.intimacy{background:#c876a2}
+@media(max-width:620px){.event-kind-label{font-size:6px;gap:1px}.event-kind-label svg{width:8px;height:8px}.calendar-event.kind-date,.calendar-event.kind-intimacy{border-left-width:2px}.calendar-legend{gap:12px;font-size:8px;padding:11px 12px}.calendar-cell{min-height:104px}}
 .relationship-banner{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 21px;border:1px solid #e8deef;border-radius:13px;background:#fff;margin-bottom:24px}
 .relationship-banner>div{display:flex;align-items:center;gap:14px;min-width:0}
 .relationship-symbol{display:flex;align-items:center;justify-content:center;width:40px;height:40px;flex-shrink:0;border-radius:12px;background:#f2ecfb;color:#9573b7;font-size:26px}
