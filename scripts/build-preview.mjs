@@ -5,7 +5,9 @@ const result = spawnSync(process.execPath, ['node_modules/vite/bin/vite.js', 'bu
   stdio: 'inherit', env: { ...process.env, VITE_STATIC_PREVIEW: 'true', NODE_ENV: 'production' },
 });
 if (result.status !== 0) process.exit(result.status || 1);
-const js = readFileSync('.preview-build/preview.js', 'utf8').replace(/<\/script/gi, '<\\/script');
+// HTML Preview rewrites script tags even inside JS string literals. Escape the
+// literal React uses when creating a script element; its runtime value is intact.
+const js = readFileSync('.preview-build/preview.js', 'utf8').replace(/<script/gi, '\\x3cscript').replace(/<\/script/gi, '<\\/script');
 const css = readFileSync('.preview-build/vdvoem-calendar.css', 'utf8');
 const favicon = `data:image/svg+xml,${encodeURIComponent(readFileSync('public/favicon.svg', 'utf8'))}`;
 mkdirSync('docs', { recursive: true });
