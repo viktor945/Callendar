@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { validateScenario, resolveAnswers, answerText } from '../src/features/dates/scenario.ts';
 
-export function dateModule({ db, broadcast, fail }) {
+export function dateModule({ db, broadcast, fail, notifyPartner = () => {} }) {
   db.exec(`CREATE TABLE IF NOT EXISTS date_invitations (
     id TEXT PRIMARY KEY, pair_id TEXT NOT NULL REFERENCES pairs(id), author_id TEXT NOT NULL REFERENCES members(id),
     status TEXT NOT NULL DEFAULT 'draft', draft TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, published_id TEXT, created_at INTEGER NOT NULL);
@@ -40,6 +40,9 @@ export function dateModule({ db, broadcast, fail }) {
   const transaction = action => { db.exec('BEGIN'); try { const result = action(); db.exec('COMMIT'); return result; } catch (error) { db.exec('ROLLBACK'); throw error; } };
   return function handle({ member, pathname, method, body, reply }) {
     if (!pathname.startsWith('/api/dates/')) return false;
+    if (pathname === '/api/dates/inbox' && method === 'GET') {
+      reply(200, db.prepare("SELECT id FROM date_invitations WHERE pair_id = ? AND author_id != ? AND status = 'published'").all(member.pair_id, member.id)); return true;
+    }
     if (pathname === '/api/dates/invitations') {
       if (method === 'GET') {
         const rows = db.prepare("SELECT * FROM date_invitations WHERE pair_id = ? AND (author_id = ? OR status != 'draft') ORDER BY created_at DESC, rowid DESC").all(member.pair_id, member.id);
@@ -76,6 +79,7 @@ export function dateModule({ db, broadcast, fail }) {
         db.prepare("UPDATE date_invitations SET published_id = ?, status = 'published', version = version + 1 WHERE id = ?").run(id, row.id);
       });
       broadcast(member.pair_id);
+      notifyPartner(member, { body: 'Для вас новое приглашение на свидание.', url: `/?dateInvite=${row.id}`, tag: `invitation-${row.id}` });
       reply(200, representation(rowFor(member, row.id), member)); return true;
     }
     if (['progress', 'respond'].includes(route[2]) && ['PUT', 'POST'].includes(method)) {
@@ -106,6 +110,7 @@ export function dateModule({ db, broadcast, fail }) {
         db.prepare("UPDATE date_invitations SET status = 'answered', version = version + 1 WHERE id = ?").run(row.id);
       });
       broadcast(member.pair_id);
+      notifyPartner(member, { body: 'Партнёр принял приглашение. Встреча появилась в общем календаре.', url: '/', tag: `invitation-${row.id}` });
       reply(201, { invitation: representation(rowFor(member, row.id), member), event: { ...event, id, version: 1 } }); return true;
     }
     return false;

@@ -11,7 +11,7 @@ import { answerText, type Answers, type Scenario, type ScenarioResponse } from '
 import type { Invitation } from './types';
 import type { DateEvent, Session } from '../../model';
 
-export function DatesHub({ session, onEvent, onCalendar, demoInvitations, setDemoInvitations }: { session: Session | null; onEvent: (event: DateEvent) => void; onCalendar: (id: string) => void; demoInvitations: Invitation[]; setDemoInvitations: Dispatch<SetStateAction<Invitation[]>> }) {
+export function DatesHub({ session, onEvent, onCalendar, demoInvitations, setDemoInvitations, receivedFocus = 0 }: { session: Session | null; onEvent: (event: DateEvent) => void; onCalendar: (id: string) => void; demoInvitations: Invitation[]; setDemoInvitations: Dispatch<SetStateAction<Invitation[]>>; receivedFocus?: number }) {
   const demo = !session;
   const [tab, setTab] = useState<'themes' | 'created' | 'received'>('themes');
   const [serverItems, setServerItems] = useState<Invitation[]>([]);
@@ -23,6 +23,7 @@ export function DatesHub({ session, onEvent, onCalendar, demoInvitations, setDem
   const [player, setPlayer] = useState<{ invitation: Invitation; preview: boolean } | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(''), [notice, setNotice] = useState(''), [loading, setLoading] = useState(!demo);
+  useEffect(() => { if (receivedFocus) { setTab('received'); setEditor(null); setPlayer(null); } }, [receivedFocus]);
   useEffect(() => {
     if (demo) return;
     let active = true;

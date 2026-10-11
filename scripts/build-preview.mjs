@@ -13,7 +13,8 @@ const favicon = `data:image/svg+xml,${encodeURIComponent(readFileSync('public/fa
 mkdirSync('docs', { recursive: true });
 writeFileSync('docs/index.html', `<!doctype html>
 <html lang="ru"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Вдвоём">
 <meta name="theme-color" content="#f7f5fa"><meta name="referrer" content="no-referrer">
 <meta name="description" content="Интерактивный предпросмотр календаря для пары Вдвоём. Демо без регистрации.">
 <title>Вдвоём — интерактивный просмотр</title><link rel="icon" href="${favicon}">

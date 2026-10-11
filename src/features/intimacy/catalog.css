@@ -1,0 +1,55 @@
+.sex-catalog-intro { padding: 29px; margin: 0 0 23px; border-radius: 18px; color: #fff; background: radial-gradient(circle at 95% 10%, #eea07955, transparent 45%), linear-gradient(120deg, #372b54, #87455f); }
+.sex-catalog-intro .eyebrow { display: flex; align-items: center; gap: 7px; color: #edd6dc; }
+.sex-catalog-intro h2 { font-size: clamp(24px, 3vw, 33px); letter-spacing: -1px; margin: 13px 0 10px; }
+.sex-catalog-intro p { font-size: 12px; line-height: 1.9; max-width: 600px; color: #eadbe5; }
+.sex-catalog { min-width: 0; }
+.catalog-search { display: flex; align-items: center; gap: 10px; border: 1px solid #e6dce9; background: #fff; border-radius: 12px; padding: 4px 15px; margin: 14px 0 18px; color: #927789; }
+.catalog-search input { flex: 1; width: 0; min-width: 0; background: transparent; border: 0; font-size: 12px; padding: 13px 0; outline-offset: 3px; }
+.catalog-search span { font-size: 10px; flex-shrink: 0; }
+.catalog-search button { display: flex; align-items: center; justify-content: center; min-height: 44px; min-width: 32px; }
+.catalog-categories { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.tone-rose { --tone: #a85475; --tint: #fae8ef; }
+.tone-violet { --tone: #7653a4; --tint: #eee7fa; }
+.tone-peach { --tone: #a16847; --tint: #fbebde; }
+.tone-berry { --tone: #a34f76; --tint: #f7e2ed; }
+.tone-blue { --tone: #526eaa; --tint: #e8eefb; }
+.tone-mint { --tone: #527e72; --tint: #e4f1ec; }
+.tone-sand { --tone: #947342; --tint: #f7eedb; }
+.tone-indigo { --tone: #626195; --tint: #ebeaf8; }
+.catalog-category { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 8px; padding: 19px 16px; border: 1px solid transparent; border-radius: 15px; background: var(--tint); color: var(--tone); position: relative; }
+.catalog-category:hover { transform: translateY(-2px); }
+.catalog-category.chosen { border-color: var(--tone); box-shadow: inset 0 0 0 1px var(--tone); }
+.catalog-emoji { font-size: 30px; line-height: 1.5; }
+.catalog-category strong { font-size: 12px; }
+.catalog-category > span:last-of-type { font-size: 10px; line-height: 1.8; opacity: .86; }
+.catalog-category i { font-style: normal; font-size: 9px; border-radius: 10px; padding: 3px 7px; background: #ffffffb0; }
+.catalog-results { display: grid; gap: 14px; }
+.catalog-sphere { border: 1px solid #e8dfe9; border-radius: 16px; padding: 23px; background: #fff; }
+.catalog-sphere-heading { display: flex; gap: 10px; align-items: center; color: var(--tone); margin-bottom: 19px; }
+.catalog-sphere-heading > span { font-size: 24px; }.catalog-sphere-heading h4 { font-size: 16px; }
+.catalog-group + .catalog-group { margin-top: 19px; }.catalog-group h5 { color: #796c83; font-size: 11px; font-weight: 700; }
+.catalog-group .tag-picker { margin-top: 9px; }.catalog-group .tag-picker button { display: inline-flex; gap: 5px; align-items: center; min-height: 42px; color: #80677c; }
+.catalog-group .tag-picker button.chosen { background: var(--tint); border-color: var(--tone); color: var(--tone); }
+.catalog-empty { font-size: 12px; color: #90758a; line-height: 1.8; padding: 16px 0; }
+.catalog-selection { padding: 21px; border: 1px solid #e7c4d6; border-radius: 15px; background: #fff5f9; margin-top: 20px; }.catalog-selection > strong { font-size: 12px; color: #985777; }
+.selected-options { display: flex; flex-wrap: wrap; gap: 7px; margin: 13px 0; }.selected-options button { display: flex; align-items: center; gap: 8px; border-radius: 9px; background: #f3e1ec; color: #935e7c; padding: 9px 10px; font-size: 11px; overflow-wrap: anywhere; text-align: left; }.selected-options button svg { flex-shrink: 0; }
+.sex-presets-heading { margin-top: 33px; }.sex-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+.sex-preset { padding: 23px 20px; border-radius: 16px; background: linear-gradient(150deg, var(--tint), #fff); border: 1px solid var(--tint); display: flex; flex-direction: column; align-items: flex-start; }
+.preset-emoji { font-size: 36px; margin-bottom: 14px; }.sex-preset h3 { color: var(--tone); font-size: 17px; line-height: 1.5; }.sex-preset p { color: #958393; font-size: 11px; line-height: 1.9; margin: 12px 0; }
+.preset-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 20px; }.preset-tags span { color: var(--tone); background: #ffffffb8; border-radius: 6px; font-size: 9px; padding: 5px 7px; }.sex-preset .button { margin-top: auto; font-size: 11px; }
+.catalog-compact .catalog-categories { display: flex; overflow-x: auto; padding-bottom: 6px; gap: 8px; }.catalog-compact .catalog-category { min-width: 125px; padding: 10px 13px; gap: 4px; }.catalog-compact .catalog-emoji { font-size: 21px; }.catalog-compact .catalog-category strong { font-size: 10px; }.catalog-compact .catalog-category > span:last-of-type { font-size: 9px; }
+.catalog-compact .catalog-sphere { padding: 17px; }.catalog-compact .catalog-search span { display: none; }
+.custom-option-input { display: flex; align-items: center; gap: 7px; }.custom-option-input input { min-width: 0; flex: 1; }.custom-option-input button { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; background: #f2e5ee; color: #995f85; border-radius: 9px; }
+.positions-options { border: 1px solid #e9dfe9; border-radius: 12px; padding: 15px; margin: 10px 0 22px; }.positions-options summary { cursor: pointer; font-size: 12px; color: #7d5f81; font-weight: 700; }.positions-options summary span { font-size: 10px; font-weight: 400; color: #a28a9f; }.positions-options > p { margin: 12px 0; }
+.detail-positions h3 { font-size: 12px; margin: 17px 0 12px; color: #a16b8a; }
+@media (max-width: 1050px) { .sex-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) {
+  .sex-catalog-intro { padding: 23px 20px; }.sex-catalog-intro p { font-size: 12px; }.catalog-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .catalog-category { padding: 15px; }.catalog-category strong { font-size: 12px; }.catalog-category > span:last-of-type { font-size: 11px; }.catalog-search { gap: 8px; padding: 3px 11px; }.catalog-search span { display: none; }
+  .catalog-sphere { padding: 19px 16px; }.catalog-group .tag-picker button { font-size: 11px; min-height: 44px; padding: 10px 12px; }.sex-presets { grid-template-columns: 1fr; }.sex-preset { padding: 23px; }.sex-preset p { font-size: 12px; }
+  .selected-options button { min-height: 44px; }.catalog-selection .button { width: 100%; justify-content: space-between; text-align: left; }.sex-presets-heading h3 { font-size: 13px; }.positions-options summary { min-height: 28px; }.positions-options summary span { display: block; margin: 5px 0 0 14px; }
+}
+
+.tag-picker button { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+.detail-positions .pill { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+.catalog-shuffle { margin-bottom:4px; }

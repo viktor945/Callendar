@@ -38,6 +38,7 @@ test('archived date module: private draft, deep editable branches, live partner 
     await alice.getByRole('button', { name: 'Редактировать', exact: true }).click();
     await expect(alice.locator('.scenario-pages')).toContainText('Что возьмём с собой?');
     await alice.getByRole('button', { name: 'Отправить приглашение', exact: true }).click();
+    await expect(mark.locator('.incoming-banner')).toContainText('Входящие приглашения · 1');
     await expect(alice.locator('.invitation-card')).toContainText('Ждёт ответа');
     await expect(mark.locator('.invitation-card')).toContainText('Наш ночной маршрут');
     await mark.getByRole('button', { name: 'Открыть приглашение', exact: true }).click();
@@ -72,9 +73,9 @@ test('archived date module: private draft, deep editable branches, live partner 
     await expect(alice.getByRole('dialog')).toContainText('Арбат');
     await alice.getByRole('button', { name: 'Закрыть', exact: true }).click();
     await alice.getByRole('button', { name: 'Запланировать свидание', exact: true }).click();
-    await alice.getByRole('group', { name: 'Тип встречи' }).getByRole('button', { name: 'Близость', exact: true }).click();
+    await alice.getByRole('group', { name: 'Тип встречи' }).getByRole('button', { name: 'Секс', exact: true }).click();
     await alice.getByLabel('Название', { exact: true }).fill('Отдельный интимный план');
-    await alice.getByRole('button', { name: 'Добавить план близости', exact: true }).click();
+    await alice.getByRole('button', { name: 'Добавить план секса', exact: true }).click();
     await alice.getByRole('group', { name: 'Фильтр календаря' }).getByRole('button', { name: /Все встречи/ }).click();
     await expect(alice.locator('.calendar-event.kind-date')).toHaveCount(1);
     await expect(alice.locator('.calendar-event.kind-intimacy')).toHaveCount(1);
@@ -82,7 +83,7 @@ test('archived date module: private draft, deep editable branches, live partner 
     const intimacyColor = await alice.locator('.calendar-event.kind-intimacy').evaluate(el => getComputedStyle(el).backgroundColor);
     expect(dateColor).not.toBe(intimacyColor);
     await expect(alice.locator('.calendar-event.kind-date')).toHaveAttribute('aria-label', /Свидание · Запланировано/);
-    await expect(alice.locator('.calendar-event.kind-intimacy')).toHaveAttribute('aria-label', /Близость · Запланировано/);
+    await expect(alice.locator('.calendar-event.kind-intimacy')).toHaveAttribute('aria-label', /Секс · Запланировано/);
     await alice.screenshot({ path: 'test-results/calendar-two-kinds.png', fullPage: true });
     expect(errors).toEqual([]);
   } finally { await first.close(); await second.close(); }

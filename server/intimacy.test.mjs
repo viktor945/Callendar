@@ -70,11 +70,26 @@ test('either partner logs a standalone fact without a time or second confirmatio
 
 test('intimacy input rejects invalid kinds, missing plan times and malformed tags', async t => {
   const { a } = await fixture(t);
-  for (const patch of [{ kind: 'other' }, { date: '2026-02-30' }, { status: 'planned' }, { time: '24:00' }, { tags: 'bad' }, { tags: Array(13).fill('tag') }, { tags: ['a'.repeat(41)] }, { tags: [null] }, { continuation: { title: 'bad', time: '', wishes: '' } }]) {
+  for (const patch of [{ kind: 'other' }, { date: '2026-02-30' }, { status: 'planned' }, { time: '24:00' }, { tags: 'bad' }, { tags: Array(25).fill('tag') }, { tags: ['a'.repeat(41)] }, { tags: [null] }, { continuation: { title: 'bad', time: '', wishes: '' } }]) {
     assert.equal((await a.request('/events', 'POST', { ...fact, ...patch })).status, 400, JSON.stringify(patch));
   }
   assert.equal((await a.request('/events', 'POST', { ...fact, tags: ['Массаж', 'Массаж', 'Свой вариант'] })).data.tags.length, 2);
   assert.equal((await a.request('/events', 'POST', { ...date, tags: ['Массаж'] })).status, 400);
+});
+
+test('expanded plans and optional user position names are shared, editable and retained after restart', async t => {
+  const f = await fixture(t);
+  const payload = { ...fact, status: 'planned', time: '21:00', tags: Array.from({ length: 24 }, (_, i) => `Вариант ${i + 1}`), positions: ['Наш вариант A', 'Наш вариант B', 'Наш вариант A'] };
+  const saved = await f.a.request('/events', 'POST', payload);
+  assert.equal(saved.status, 201); assert.equal(saved.data.tags.length, 24);
+  assert.deepEqual(saved.data.positions, ['Наш вариант A', 'Наш вариант B']);
+  assert.deepEqual((await f.b.request('/session')).data.events[0], saved.data);
+  await f.restart();
+  assert.deepEqual((await f.b.request('/session')).data.events[0].positions, saved.data.positions);
+  const changed = await f.b.request(`/events/${saved.data.id}`, 'PATCH', { ...saved.data, positions: [] });
+  assert.equal(changed.status, 200); assert.deepEqual(changed.data.positions, []);
+  for (const positions of ['bad', [''], [null], ['a'.repeat(81)], Array(21).fill('name')]) assert.equal((await f.a.request('/events', 'POST', { ...fact, positions })).status, 400);
+  assert.equal((await f.a.request('/events', 'POST', { ...date, positions: ['Our name'] })).status, 400);
 });
 
 test('personal ratings stay private, survive restart and are deleted with their event', async t => {

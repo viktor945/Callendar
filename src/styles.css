@@ -80,3 +80,27 @@
   .intimacy-stats strong{font-size:30px}.intimacy-stats span{font-size:9px}.rhythm-chart{gap:15px}.intimacy-plans{padding:19px 16px}
   .intimacy-ideas .section-heading h3{font-size:13px}.tag-picker button{font-size:9px;padding:8px 10px}
 }
+
+.incoming-banner { display:flex; align-items:center; gap:12px; width:100%; border:1px solid #dccbec; border-radius:12px; background:#f0e8fb; color:#8056a2; padding:16px 20px; text-align:left; margin-bottom:20px; font-size:12px; font-weight:700; }
+.incoming-banner > span { flex:1; }.incoming-banner svg { flex-shrink:0; }
+.device-settings-button { color:#997caa; min-width:36px; min-height:40px; }
+.device-settings { display:grid; gap:17px; }.device-card { border:1px solid #e8dfea; border-radius:15px; padding:23px; background:linear-gradient(135deg,#fbf7ff,#fff); }
+.device-icon { display:inline-flex; padding:11px; border-radius:13px; color:#9872b5; background:#efe6f8; margin-bottom:15px; }
+.device-card h3 { font-size:17px; line-height:1.5; color:#7e5b94; }.device-card > p { font-size:12px; line-height:1.9; color:#94839c; margin:11px 0; }
+.device-card ol { padding-left:19px; font-size:12px; line-height:2.1; color:#8b7495; margin-top:13px; }.device-card li svg { display:inline; vertical-align:middle; }.device-card li + li { margin-top:6px; }
+.device-card .device-privacy { font-size:11px; color:#9b8096; padding-left:12px; border-left:2px solid #d8bad5; }.device-status { background:#f4ecf8; color:#8a6c9a; padding:13px 15px; font-size:12px; line-height:1.8; border-radius:10px; margin:16px 0; }
+.device-success { display:flex; align-items:center; gap:7px; font-size:12px; color:#668b7d; line-height:1.8; }.device-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:15px 0; }.device-actions > p { flex-basis:100%; }
+@media(max-width:620px) {
+  body { min-width:320px; }.sidebar { height:calc(69px + env(safe-area-inset-bottom)); padding-bottom:calc(10px + env(safe-area-inset-bottom)); }.main-wrapper { padding-bottom:calc(69px + env(safe-area-inset-bottom)); }
+  .topbar { padding-top:env(safe-area-inset-top); height:calc(65px + env(safe-area-inset-top)); padding-left:max(12px, env(safe-area-inset-left)); padding-right:max(12px, env(safe-area-inset-right)); }.topbar-right { gap:7px; }.device-settings-button { min-height:44px; min-width:35px; }.breadcrumb { font-size:8px; }
+  input:not([type=checkbox]):not([type=radio]), textarea, select { font-size:16px !important; }.modal-backdrop { padding: max(13px, env(safe-area-inset-top)) max(13px, env(safe-area-inset-right)) max(13px, env(safe-area-inset-bottom)) max(13px, env(safe-area-inset-left)); }
+  .modal { max-height:calc(100dvh - 26px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }.modal .icon-button { min-height:44px; min-width:44px; }.modal .button { min-height:44px; }
+  .device-card { padding:19px; }.device-card .button { width:100%; }.main-footer .text-button { font-size:9px; min-height:44px; }.incoming-banner { font-size:11px; padding:14px; }
+}
+@media(max-width:620px) {
+  .right-column { min-width:0; grid-template-columns:minmax(0,1fr); }.next-date-card,.idea-teaser { min-width:0; }.card-button { white-space:normal; text-align:left; }
+}
+@media(max-width:360px) {
+  .next-date-card { padding:21px; }.next-date-card .card-label { margin:0 0 10px; }.next-date-card .date-illustration { position:relative; left:auto; top:auto; width:100%; margin:15px 0 5px; }
+  .idea-teaser { padding:21px; }.idea-teaser .card-label { margin:0; }.idea-teaser .idea-emoji { position:relative; left:auto; top:auto; font-size:47px; margin-top:12px; }.idea-teaser h3 { margin-top:10px; }
+}

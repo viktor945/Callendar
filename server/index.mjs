@@ -5,6 +5,7 @@ import { mkdirSync, existsSync, createReadStream } from 'node:fs';
 import { dirname, resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dateModule } from './dates.mjs';
+import { pushModule } from './push.mjs';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 const secret = () => randomBytes(24).toString('base64url');
@@ -32,14 +33,17 @@ function eventInput(body) {
     continuation = { title: text(body.continuation.title, 100, true), time: continuationTime, wishes: text(body.continuation.wishes, 2000) };
   }
   const tags = body.tags ?? [];
-  if (!Array.isArray(tags) || tags.length > 12 || tags.some(tag => typeof tag !== 'string' || !tag.trim() || tag.length > 40)) fail(400, 'Проверьте метки встречи.');
+  if (!Array.isArray(tags) || tags.length > 24 || tags.some(tag => typeof tag !== 'string' || !tag.trim() || tag.length > 40)) fail(400, 'Проверьте варианты встречи: до 24 названий.');
   if (kind === 'date' && tags.length) fail(400, 'Метки близости относятся к интимной встрече.');
+  const positions = body.positions ?? [];
+  if (!Array.isArray(positions) || positions.length > 20 || positions.some(value => typeof value !== 'string' || !value.trim() || value.length > 80)) fail(400, 'Проверьте названия поз: до 20 названий по 80 символов.');
+  if (kind === 'date' && positions.length) fail(400, 'Позы относятся к записи секса.');
   const linkedDateId = body.linkedDateId ?? null;
   if (linkedDateId !== null && (kind !== 'intimacy' || typeof linkedDateId !== 'string' || !/^[a-f0-9-]{36}$/.test(linkedDateId))) fail(400, 'Проверьте связанное свидание.');
-  return { title: text(body.title, 100, true), date, time, location: text(body.location ?? '', 200), category, note: text(body.note ?? '', 2000), status: body.status, continuation, kind, tags: [...new Set(tags.map(tag => tag.trim()))], linkedDateId };
+  return { title: text(body.title, 100, true), date, time, location: text(body.location ?? '', 200), category, note: text(body.note ?? '', 2000), status: body.status, continuation, kind, tags: [...new Set(tags.map(tag => tag.trim()))], positions: [...new Set(positions.map(value => value.trim()))], linkedDateId };
 }
 
-export async function createApp({ databasePath = process.env.DATABASE_PATH || resolve('.data/calendar.sqlite'), serveFrontend = true } = {}) {
+export async function createApp({ databasePath = process.env.DATABASE_PATH || resolve('.data/calendar.sqlite'), serveFrontend = true, pushOptions = {} } = {}) {
   const publicOrigin = process.env.PUBLIC_ORIGIN || process.env.RENDER_EXTERNAL_URL;
   if (databasePath !== ':memory:') mkdirSync(dirname(databasePath), { recursive: true, mode: 0o700 });
   const db = new DatabaseSync(databasePath);
@@ -99,7 +103,8 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
     if (!event) fail(404, 'Встреча не найдена.');
     return event;
   }
-  const handleDates = dateModule({ db, broadcast, fail });
+  const push = pushModule({ db, fail, origin: publicOrigin, ...pushOptions });
+  const handleDates = dateModule({ db, broadcast, fail, notifyPartner: push.notifyPartner });
   let vite;
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || '/', 'http://localhost');
@@ -119,7 +124,8 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
       if (!file.startsWith(dist + '/')) file = resolve(dist, 'index.html');
       if (!existsSync(file) || !extname(file)) file = resolve(dist, 'index.html');
       if (!existsSync(file)) return reply(503, { error: 'Run npm run build first' });
-      const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2' };
+      const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
+      if (url.pathname === '/sw.js') res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Content-Type', types[extname(file)] || 'application/octet-stream');
       const stream = createReadStream(file);
       stream.on('error', () => { if (!res.headersSent) res.writeHead(404); res.end(); });
@@ -182,6 +188,7 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
         return reply(200, state({ id: memberId, pair_id: pair.id }));
       }
       if (!member) fail(401, 'Сначала создайте общий календарь или примите приглашение.');
+      if (await push.handle({ member, pathname: url.pathname, method: req.method, body, reply })) return;
       if (handleDates({ member, pathname: url.pathname, method: req.method, body, reply })) return;
       if (url.pathname === '/api/pair/profile' && req.method === 'PATCH') {
         const data = profileInput(body);
@@ -211,6 +218,7 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
         checkLink(member, data);
         db.prepare('INSERT INTO events (id, pair_id, data) VALUES (?, ?, ?)').run(id, member.pair_id, JSON.stringify(data));
         broadcast(member.pair_id);
+        if (data.status === 'planned') push.notifyPartner(member, { body: 'Партнёр добавил встречу в ваш общий календарь.', url: '/', tag: `event-${id}` });
         return reply(201, { ...data, id, version: 1 });
       }
       const route = /^\/api\/events\/([a-f0-9-]+)(\/private)?$/.exec(url.pathname);
@@ -240,6 +248,7 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
           const changed = db.prepare('UPDATE events SET data = ?, version = version + 1 WHERE id = ? AND version = ?').run(JSON.stringify(data), event.id, body.version ?? -1);
           if (!changed.changes) fail(409, 'Партнёр уже изменил встречу. Закройте окно и откройте её снова.');
           broadcast(member.pair_id);
+          if (data.status === 'planned') push.notifyPartner(member, { body: 'Партнёр изменил общий план. Посмотрите обновление.', url: '/', tag: `event-${event.id}` });
           return reply(200, { ...data, id: event.id, version: event.version + 1 });
         } else if (req.method === 'DELETE') {
           if (!Number.isInteger(body.version) || body.version < 1) fail(400, 'Некорректная версия встречи.');
@@ -251,6 +260,7 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
             db.exec('COMMIT');
           } catch (error) { db.exec('ROLLBACK'); throw error; }
           broadcast(member.pair_id);
+          if (JSON.parse(event.data).status === 'planned') push.notifyPartner(member, { body: 'Партнёр отменил встречу в общем календаре.', url: '/', tag: `event-${event.id}` });
           return reply(200, { ok: true });
         }
       }
@@ -265,7 +275,7 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
     const { createServer } = await import('vite');
     vite = await createServer({ server: { middlewareMode: true, hmr: { server } }, appType: 'spa' });
   }
-  return { server, db, async close() { for (const clients of streams.values()) for (const client of clients) client.end(); await vite?.close(); await new Promise(resolve => server.close(resolve)); db.close(); } };
+  return { server, db, async close() { for (const clients of streams.values()) for (const client of clients) client.end(); await vite?.close(); await new Promise(resolve => server.close(resolve)); await push.close(); db.close(); } };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
