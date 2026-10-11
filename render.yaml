@@ -1,0 +1,22 @@
+# This blueprint uses a paid instance and a persistent disk.
+# Review Render's current pricing before applying it.
+services:
+  - type: web
+    name: vdvoem-calendar
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --no-audit --no-fund && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /var/data/calendar.sqlite
+    disk:
+      name: vdvoem-data
+      mountPath: /var/data
+      sizeGB: 1

@@ -1,0 +1,231 @@
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { ArrowRight, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Copy, Heart, History, Home, Lightbulb, Link2, LockKeyhole, MapPin, Mountain, Plus, Sparkles, Trash2, Users, Wifi, WifiOff, X } from 'lucide-react';
+
+type Category = 'date' | 'home' | 'adventure';
+type DateEvent = { id: string; version: number; title: string; date: string; time: string; location: string; category: Category; note: string; status: 'planned' | 'completed'; continuation: { title: string; time: string; wishes: string } | null };
+type Session = { memberId: string; members: { id: string; name: string }[]; events: DateEvent[] };
+type Page = 'calendar' | 'ideas' | 'history';
+type Idea = { title: string; description: string; category: Category; tag: string; emoji: string; time: string };
+const categories = { date: { label: 'Свидание', icon: Heart }, home: { label: 'Дома вдвоём', icon: Home }, adventure: { label: 'Приключение', icon: Mountain } };
+const ideas: Idea[] = [
+  { title: 'Ужин без повода', description: 'Новое место, любимый человек и вечер, который никуда не спешит.', category: 'date', tag: 'Поговорить обо всём', emoji: '🍝', time: '19:00' },
+  { title: 'Наш маленький кинотеатр', description: 'Выберите фильм друг для друга. Плед и что-нибудь вкусное обязательны.', category: 'home', tag: 'Уютный вечер', emoji: '🎬', time: '20:00' },
+  { title: 'Куда ведёт эта дорога?', description: 'Прогулка по незнакомому району. Сверните туда, где ещё не бывали.', category: 'adventure', tag: 'Маленькое открытие', emoji: '🧭', time: '16:00' },
+  { title: 'Завтрак чуть дольше', description: 'Приготовьте завтрак вместе и оставьте телефоны в другой комнате.', category: 'home', tag: 'Медленное утро', emoji: '🥐', time: '10:00' },
+  { title: 'Свидание с искусством', description: 'Выставка, маленькая галерея или мастер-класс. Найдите общее вдохновение.', category: 'date', tag: 'Вдохновиться', emoji: '🎨', time: '15:00' },
+  { title: 'Вечер прикосновений', description: 'Тёплый свет, спокойная музыка и время обсудить, чего хочется каждому.', category: 'home', tag: 'Стать ближе', emoji: '🕯️', time: '21:00' },
+];
+const today = new Date();
+const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const dateFromKey = (key: string) => new Date(`${key}T12:00:00`);
+const dateLabel = (key: string, options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' }) => dateFromKey(key).toLocaleDateString('ru-RU', options);
+const monthLabel = (date: Date) => date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(' г.', '');
+function demoEvents(): DateEvent[] {
+  const offset = (days: number) => { const date = new Date(today); date.setDate(date.getDate() + days); return dateKey(date); };
+  return [
+    { id: 'demo-1', title: 'Ужин в любимом месте', date: offset(2), time: '19:00', location: 'Наш любимый ресторан', category: 'date', note: 'Закажем тот самый десерт и поболтаем обо всём.', continuation: { title: 'Вечер только для нас', time: '21:30', wishes: 'Тёплый свет, музыка и никаких спешных планов.' }, status: 'planned', version: 1 },
+    { id: 'demo-2', title: 'Кино, плед и мы', date: offset(5), time: '20:00', location: 'Дома', category: 'home', note: 'Фильм выбираем по очереди. В этот раз — ты!', continuation: null, status: 'planned', version: 1 },
+    { id: 'demo-3', title: 'За город на весь день', date: offset(7), time: '11:00', location: 'Придумаем вместе', category: 'adventure', note: 'Возьмём термос и отправимся навстречу осени.', continuation: null, status: 'planned', version: 1 },
+    { id: 'demo-4', title: 'Медленное утро', date: offset(13), time: '10:00', location: 'Дома', category: 'home', note: '', continuation: null, status: 'planned', version: 1 },
+    { id: 'demo-5', title: 'Та самая прогулка', date: offset(-4), time: '18:00', location: 'Парк у набережной', category: 'adventure', note: 'Листья под ногами, горячий кофе и два часа разговоров.', continuation: null, status: 'completed', version: 1 },
+  ];
+}
+async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+  const response = await fetch(`/api${path}`, { method, credentials: 'same-origin', headers: body === undefined ? undefined : { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Не удалось сохранить изменения.');
+  return data;
+}
+function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
+  const dialog = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialog.current?.querySelector<HTMLElement>('input, button')?.focus();
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close.current();
+      if (event.key === 'Tab') {
+        const items = [...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href]') || [])];
+        const first = items[0], last = items[items.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    };
+    document.addEventListener('keydown', key);
+    return () => { document.body.style.overflow = oldOverflow; document.removeEventListener('keydown', key); previous?.focus(); };
+  }, []);
+  return <div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className={`modal ${wide ? 'modal-wide' : ''}`} ref={dialog} role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-heading"><h2 id="modal-title">{title}</h2><button className="icon-button" aria-label="Закрыть" onClick={onClose}><X size={20} /></button></div>{children}</div></div>;
+}
+
+function EventForm({ initial, defaultDate, onSave, onClose, demo }: { initial?: Partial<DateEvent>; defaultDate: string; onSave: (event: Omit<DateEvent, 'id' | 'version'>) => Promise<void>; onClose: () => void; demo: boolean }) {
+  const [form, setForm] = useState({ title: initial?.title || '', date: initial?.date || defaultDate, time: initial?.time || '19:00', location: initial?.location || '', category: initial?.category || 'date', note: initial?.note || '', status: initial?.status || 'planned' } as Omit<DateEvent, 'id' | 'version' | 'continuation'>);
+  const [intimate, setIntimate] = useState(!!initial?.continuation);
+  const [continuation, setContinuation] = useState(initial?.continuation || { title: 'Время для близости', time: '', wishes: '' });
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const field = (key: keyof typeof form, value: string) => setForm(previous => ({ ...previous, [key]: value }));
+  async function submit(event: FormEvent) {
+    event.preventDefault(); setBusy(true); setError('');
+    try { await onSave({ ...form, continuation: intimate ? continuation : null }); } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
+  }
+  return <Modal title={initial?.id ? 'Наше свидание' : 'Запланируем время вдвоём'} onClose={onClose} wide><form onSubmit={submit}>
+    <p className="form-intro">{demo ? 'Вы в демо. Эти изменения не сохранятся после перезагрузки.' : 'Встреча и общие пожелания появятся у вас обоих.'}</p>
+    <label>Название<input required maxLength={100} placeholder="Например, ужин без повода" value={form.title} onChange={e => field('title', e.target.value)} autoFocus /></label>
+    <div className="form-row"><label>Дата<input required type="date" value={form.date} onChange={e => field('date', e.target.value)} /></label><label>Время<input required type="time" value={form.time} onChange={e => field('time', e.target.value)} /></label></div>
+    <label>Формат<div className="category-picker">{Object.entries(categories).map(([key, item]) => <button type="button" key={key} className={form.category === key ? `chosen ${key}` : ''} onClick={() => field('category', key)}><item.icon size={16} />{item.label}</button>)}</div></label>
+    <label>Место <span className="optional">необязательно</span><input maxLength={200} placeholder="Где встретимся?" value={form.location} onChange={e => field('location', e.target.value)} /></label>
+    <label>Общая заметка <span className="optional">видно обоим</span><textarea maxLength={2000} rows={2} placeholder="Что хочется сделать вместе?" value={form.note} onChange={e => field('note', e.target.value)} /></label>
+    <div className={`intimacy-option ${intimate ? 'enabled' : ''}`}><label className="toggle-label"><span><Heart size={18} /><span>А после свидания…<small>Необязательный план интимного продолжения</small></span></span><input type="checkbox" checked={intimate} onChange={e => setIntimate(e.target.checked)} /><span className="switch" aria-hidden="true" /></label>
+      {intimate && <div className="continuation-fields"><div className="form-row"><label>Как назовём?<input required maxLength={100} value={continuation.title} onChange={e => setContinuation({ ...continuation, title: e.target.value })} /></label><label>Время<input type="time" value={continuation.time} onChange={e => setContinuation({ ...continuation, time: e.target.value })} /></label></div><label>Общие пожелания <span className="optional">видно обоим</span><textarea maxLength={2000} rows={2} placeholder="Настроение, желания, что поможет расслабиться…" value={continuation.wishes} onChange={e => setContinuation({ ...continuation, wishes: e.target.value })} /></label><p className="microcopy">План — повод поговорить. Каждый может передумать в любой момент.</p></div>}
+    </div>
+    {initial?.id && <label>Статус<select value={form.status} onChange={e => field('status', e.target.value)}><option value="planned">Запланировано</option><option value="completed">Было прекрасно — встреча состоялась</option></select></label>}
+    {error && <p className="error" role="alert">{error}</p>}
+    <div className="modal-actions"><button className="button secondary" type="button" onClick={onClose}>Отмена</button><button className="button primary" disabled={busy}>{busy ? 'Сохраняем…' : initial?.id ? 'Сохранить изменения' : 'Добавить свидание'}<Heart size={16} /></button></div>
+  </form></Modal>;
+}
+
+function EventDetail({ event, demo, onClose, onEdit, onDelete, onComplete, demoNotes }: { event: DateEvent; demo: boolean; onClose: () => void; onEdit: () => void; onDelete: () => Promise<void>; onComplete: () => Promise<void>; demoNotes: { current: Record<string, string> } }) {
+  const [note, setNote] = useState('');
+  const [loading, setLoading] = useState(!demo);
+  const [noteReady, setNoteReady] = useState(demo);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  useEffect(() => {
+    let active = true;
+    if (demo) { setNote(demoNotes.current[event.id] || ''); return; }
+    api<{ note: string }>(`/events/${event.id}/private`).then(data => { if (active) { setNote(data.note); setNoteReady(true); } }).catch(err => { if (active) setError(err.message); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [event.id, demo, demoNotes]);
+  async function perform(action: () => Promise<void>) { setBusy(true); setError(''); try { await action(); } catch (err) { setError((err as Error).message); } finally { setBusy(false); } }
+  return <Modal title={event.title} onClose={onClose} wide><div className="detail-tags"><span className={`pill ${event.category}`}>{categories[event.category].label}</span><span className="pill neutral">{event.status === 'completed' ? 'В нашей истории' : 'Запланировано'}</span></div>
+    <div className="detail-meta"><span><CalendarDays size={18} />{dateLabel(event.date, { weekday: 'long', day: 'numeric', month: 'long' })}</span><span><Clock3 size={18} />{event.time}</span>{event.location && <span><MapPin size={18} />{event.location}</span>}</div>
+    {event.note && <p className="detail-note">{event.note}</p>}
+    {event.continuation && <div className="continuation-detail"><span className="eyebrow"><Heart size={14} /> А после свидания</span><h3>{event.continuation.title}</h3>{event.continuation.time && <p className="muted">{event.continuation.time} · время для близости</p>}{event.continuation.wishes && <p>{event.continuation.wishes}</p>}<span className="microcopy">Общие пожелания · видно обоим</span></div>}
+    <div className="private-note"><div className="private-heading"><LockKeyhole size={18} /><h3>Только для меня</h3><span>Личное</span></div><p className="muted">Мои ощущения, желания и воспоминания. Партнёр не видит эту заметку.</p><textarea aria-label="Личная заметка" rows={3} maxLength={4000} value={note} disabled={loading || busy || !noteReady} placeholder={loading ? 'Загружаем личную заметку…' : 'Что я хочу запомнить об этом вечере?'} onChange={e => { setNote(e.target.value); setSaved(false); }} /><button className="text-button" disabled={loading || busy || !noteReady} onClick={() => perform(async () => { if (demo) demoNotes.current[event.id] = note; else await api(`/events/${event.id}/private`, 'PUT', { note }); setSaved(true); })}>{saved ? <><Check size={15} /> Сохранено{demo ? ' в демо' : ''}</> : 'Сохранить личную заметку'}</button></div>
+    {error && <p role="alert" className="error">{error}</p>}
+    {confirmDelete ? <div className="delete-confirm"><p>Удалить встречу и связанные личные заметки у обоих партнёров?</p><button className="button danger" disabled={busy} onClick={() => perform(onDelete)}>Удалить</button><button className="button secondary" onClick={() => setConfirmDelete(false)}>Оставить</button></div> : <div className="modal-actions detail-actions"><button className="icon-button delete-button" aria-label="Удалить встречу" onClick={() => setConfirmDelete(true)}><Trash2 size={18} /></button><button className="button secondary" disabled={busy} onClick={onEdit}>Изменить</button>{event.status === 'planned' && <button className="button primary" disabled={busy} onClick={() => perform(onComplete)}><Check size={16} />Встреча состоялась</button>}</div>}
+  </Modal>;
+}
+
+export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [demoDates, setDemoDates] = useState(demoEvents);
+  const [page, setPage] = useState<Page>('calendar');
+  const [month, setMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selected, setSelected] = useState(dateKey(today));
+  const [filter, setFilter] = useState<Category | 'all'>('all');
+  const [form, setForm] = useState<Partial<DateEvent> | null>(null);
+  const [detail, setDetail] = useState<DateEvent | null>(null);
+  const [pairModal, setPairModal] = useState(false);
+  const [pairMode, setPairMode] = useState<'create' | 'join'>(location.hash.startsWith('#invite=') ? 'join' : 'create');
+  const [inviteInput, setInviteInput] = useState(location.hash.startsWith('#invite=') ? location.hash.slice(8) : '');
+  const [inviteLink, setInviteLink] = useState('');
+  const [name, setName] = useState('');
+  const [pairError, setPairError] = useState('');
+  const [pairBusy, setPairBusy] = useState(false);
+  const [connection, setConnection] = useState<'connecting' | 'live' | 'offline'>('connecting');
+  const [toast, setToast] = useState('');
+  const notes = useRef<Record<string, string>>({});
+  const demo = !session;
+  const events = session?.events || demoDates;
+  const activeDetail = detail ? events.find(event => event.id === detail.id) : undefined;
+  const partner = session?.members.find(member => member.id !== session.memberId);
+  const me = session?.members.find(member => member.id === session.memberId);
+  async function refresh() { const data = await api<Session | null>('/session'); setSession(data); }
+  async function load() { setLoadError(''); try { await refresh(); } catch (err) { setLoadError((err as Error).message || 'Не удалось подключиться к серверу.'); } finally { setLoaded(true); } }
+  useEffect(() => { void load(); if (location.hash.startsWith('#invite=')) setPairModal(true); }, []);
+  useEffect(() => {
+    if (!session?.memberId) return;
+    const source = new EventSource('/api/stream');
+    let active = true;
+    const sync = () => { api<Session | null>('/session').then(data => { if (active) { setSession(data); setConnection('live'); } }).catch(() => { if (active) setConnection('offline'); }); };
+    source.addEventListener('ready', sync);
+    source.addEventListener('change', sync);
+    source.onerror = () => setConnection('offline');
+    const onVisible = () => { if (document.visibilityState === 'visible') sync(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { active = false; source.close(); document.removeEventListener('visibilitychange', onVisible); };
+  }, [session?.memberId]);
+  useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 4500); return () => clearTimeout(timer); }, [toast]);
+  const planned = events.filter(event => event.status === 'planned').sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+  const upcoming = planned.find(event => `${event.date}T${event.time}` >= `${dateKey(today)}T00:00`);
+  const monthEvents = events.filter(event => event.date.startsWith(dateKey(month).slice(0, 7)) && (filter === 'all' || event.category === filter));
+  const selectedEvents = events.filter(event => event.date === selected && (filter === 'all' || event.category === filter)).sort((a, b) => a.time.localeCompare(b.time));
+  const completed = events.filter(event => event.status === 'completed').sort((a, b) => b.date.localeCompare(a.date));
+  const start = new Date(month); start.setDate(1 - (month.getDay() + 6) % 7);
+  const cells = Array.from({ length: Math.ceil(((month.getDay() + 6) % 7 + new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()) / 7) * 7 }, (_, i) => { const date = new Date(start); date.setDate(start.getDate() + i); return date; });
+  function shiftMonth(amount: number) { const next = new Date(month.getFullYear(), month.getMonth() + amount, 1); setMonth(next); setSelected(dateKey(next)); }
+  async function saveEvent(data: Omit<DateEvent, 'id' | 'version'>) {
+    if (demo) {
+      const event = { ...data, id: form?.id || `demo-${Date.now()}`, version: (form?.version || 0) + 1 };
+      setDemoDates(previous => form?.id ? previous.map(old => old.id === event.id ? event : old) : [...previous, event]);
+    } else {
+      const saved = await api<DateEvent>(form?.id ? `/events/${form.id}` : '/events', form?.id ? 'PATCH' : 'POST', { ...data, version: form?.version });
+      setSession(current => current && { ...current, events: [...current.events.filter(event => event.id !== saved.id), saved] });
+    }
+    setSelected(data.date); setMonth(new Date(dateFromKey(data.date).getFullYear(), dateFromKey(data.date).getMonth(), 1)); setForm(null); setPage('calendar'); setToast(demo ? 'Добавлено в демо. Создайте пару, чтобы сохранять встречи.' : 'Встреча сохранена в вашем общем календаре');
+  }
+  async function deleteEvent(event: DateEvent) {
+    if (demo) setDemoDates(previous => previous.filter(old => old.id !== event.id));
+    else { await api(`/events/${event.id}`, 'DELETE', { version: event.version }); setSession(current => current && { ...current, events: current.events.filter(old => old.id !== event.id) }); }
+    setDetail(null); setToast('Встреча удалена');
+  }
+  async function completeEvent(event: DateEvent) {
+    if (demo) setDemoDates(previous => previous.map(old => old.id === event.id ? { ...old, status: 'completed', version: old.version + 1 } : old));
+    else { const saved = await api<DateEvent>(`/events/${event.id}`, 'PATCH', { ...event, status: 'completed' }); setSession(current => current && { ...current, events: current.events.map(old => old.id === event.id ? saved : old) }); }
+    setDetail(null); setToast('Этот момент теперь в вашей истории ♡');
+  }
+  function useIdea(idea: Idea) { setForm({ title: idea.title, note: idea.description, category: idea.category, time: idea.time, ...(idea.title === 'Вечер прикосновений' ? { continuation: { title: 'Время для близости', time: '', wishes: '' } } : {}) }); }
+  async function invitePartner() {
+    setPairError(''); setInviteLink(''); setPairModal(true);
+    if (!session) return;
+    if (partner) return;
+    setPairBusy(true);
+    try { const data = await api<{ invite: string }>('/invite', 'POST', {}); setInviteLink(`${location.origin}/#invite=${data.invite}`); } catch (err) { setPairError((err as Error).message); } finally { setPairBusy(false); }
+  }
+  async function connectPair(event: FormEvent) {
+    event.preventDefault(); setPairBusy(true); setPairError('');
+    try {
+      const invite = inviteInput.includes('#invite=') ? inviteInput.split('#invite=')[1].trim() : inviteInput.trim();
+      const data = await api<Session & { invite?: string }>(pairMode === 'create' ? '/pairs' : '/join', 'POST', { name, invite });
+      setSession(data); notes.current = {}; setDetail(null); setForm(null);
+      history.replaceState(null, '', location.pathname + location.search);
+      if (data.invite) setInviteLink(`${location.origin}/#invite=${data.invite}`);
+      else { setPairModal(false); setToast('Вы подключены! Теперь это ваш общий календарь.'); }
+    } catch (err) { setPairError((err as Error).message); } finally { setPairBusy(false); }
+  }
+  async function copyInvite() { try { await navigator.clipboard.writeText(inviteLink); setToast('Ссылка скопирована. Отправьте её партнёру.'); } catch { setPairError('Выделите и скопируйте ссылку вручную.'); } }
+  if (!loaded || loadError) return <div className="loading-screen"><div className="brand"><span className="brand-symbol"><Heart fill="currentColor" /></span>вдвоём<span className="brand-dot">.</span></div>{loadError ? <><p className="error">Не удалось подключиться к серверу.</p><button className="button primary" onClick={load}>Попробовать снова</button></> : <p>Готовим пространство для вас двоих…</p>}</div>;
+
+  return <div className="app-shell">
+    <aside className="sidebar"><a href="#" className="brand" onClick={e => { e.preventDefault(); setPage('calendar'); }}><span className="brand-symbol"><Heart size={22} fill="currentColor" /></span>вдвоём<span className="brand-dot">.</span></a><div className="space-label">ВАШЕ ОБЩЕЕ ПРОСТРАНСТВО</div>
+      <nav aria-label="Основная навигация">{([{ id: 'calendar', title: 'Наш календарь', icon: CalendarDays }, { id: 'ideas', title: 'Идеи для свиданий', icon: Lightbulb }, { id: 'history', title: 'Наша история', icon: History }] as const).map(item => <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`} onClick={() => setPage(item.id)}><item.icon size={19} />{item.title}{page === item.id && <span className="nav-dot" />}</button>)}</nav>
+      <div className="sidebar-note"><div className="note-doodle">✳︎</div><p>Самое важное —<br />время друг для друга.</p><span>Остальное подождёт.</span></div>
+      <div className="sidebar-bottom"><LockKeyhole size={15} /><span>Пространство только для двоих</span></div>
+    </aside>
+    <div className="main-wrapper"><header className="topbar"><div className="breadcrumb">Наше пространство<span>/</span><strong>{page === 'calendar' ? 'Календарь' : page === 'ideas' ? 'Идеи' : 'История'}</strong></div><div className="topbar-right"><span className={`connection ${demo ? 'demo' : connection}`} title={demo ? 'Примеры встреч. Создайте пару для сохранения и синхронизации.' : connection === 'live' ? 'Подключение к серверу активно' : 'Переподключаемся к серверу'}>{demo ? <span className="status-dot" /> : connection === 'offline' ? <WifiOff size={13} /> : <Wifi size={13} />}{demo ? 'Демо-режим' : connection === 'live' ? 'Синхронизировано' : connection === 'offline' ? 'Нет связи' : 'Подключаемся'}</span><div className="avatars" aria-label={demo ? 'Пример пары' : session.members.map(member => member.name).join(' и ')}><span className="avatar avatar-one">{demo ? 'А' : me?.name[0]?.toUpperCase()}</span><span className="avatar avatar-two">{demo ? 'М' : partner?.name[0]?.toUpperCase() || '+'}</span></div><button className="pair-button" onClick={invitePartner}>{demo ? 'Создать пару' : partner ? 'Наша пара' : 'Пригласить'}<ChevronRight size={15} /></button></div></header>
+      <main><div className="page-heading"><div><div className="eyebrow"><span className="tiny-line" /> {page === 'calendar' ? 'БОЛЬШЕ ВРЕМЕНИ ВМЕСТЕ' : page === 'ideas' ? 'ЧТО-ТО НОВОЕ ДЛЯ ВАС' : 'МОМЕНТЫ, КОТОРЫЕ ОСТАЮТСЯ'}</div><h1>{page === 'calendar' ? 'Время для нас' : page === 'ideas' ? 'А если попробовать…' : 'Наша история'}<span className="heading-spark">✳︎</span></h1><p>{page === 'calendar' ? 'Планируйте свидания. Будьте ближе. Создавайте вашу историю.' : page === 'ideas' ? 'Большие чувства складываются из маленьких встреч.' : 'Здесь живут ваши состоявшиеся свидания и тёплые воспоминания.'}</p></div><button className="button primary new-event" onClick={() => setForm({})}><Plus size={18} />Запланировать свидание</button></div>
+      {demo && <div className="demo-banner"><span><Sparkles size={16} />Познакомьтесь с вашим будущим календарём — сейчас здесь примеры.</span><button onClick={invitePartner}>Начать нашу историю<ArrowRight size={15} /></button></div>}
+      {page === 'calendar' && <div className="dashboard-grid"><section className="calendar-section"><div className="calendar-card"><div className="calendar-toolbar"><div className="month-controls"><h2>{monthLabel(month)}</h2><button className="icon-button" onClick={() => shiftMonth(-1)} aria-label="Предыдущий месяц"><ChevronLeft size={18} /></button><button className="icon-button" onClick={() => shiftMonth(1)} aria-label="Следующий месяц"><ChevronRight size={18} /></button></div><button className="today-button" onClick={() => { setMonth(new Date(today.getFullYear(), today.getMonth(), 1)); setSelected(dateKey(today)); }}>Сегодня</button></div><div className="calendar-filters"><button className={filter === 'all' ? 'selected' : ''} onClick={() => setFilter('all')}>Все планы<span>{events.filter(event => event.date.startsWith(dateKey(month).slice(0, 7))).length}</span></button>{Object.entries(categories).map(([key, item]) => <button key={key} className={filter === key ? 'selected' : ''} onClick={() => setFilter(key as Category)}><span className={`category-dot ${key}`} />{item.label}</button>)}</div>
+        <div className="weekday-row">{['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(day => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{cells.map(date => { const key = dateKey(date); const daily = monthEvents.filter(event => event.date === key); return <div key={key} className={`calendar-cell ${date.getMonth() !== month.getMonth() ? 'outside-month' : ''} ${key === selected ? 'selected-day' : ''}`}><button className={`day-number ${key === dateKey(today) ? 'is-today' : ''}`} aria-label={dateLabel(key, { weekday: 'long', day: 'numeric', month: 'long' })} aria-pressed={key === selected} onClick={() => setSelected(key)}>{date.getDate()}</button><div className="cell-events">{daily.slice(0, 2).map(event => <button key={event.id} className={`calendar-event ${event.category} ${event.status === 'completed' ? 'completed' : ''}`} onClick={() => setDetail(event)} title={`${event.time} ${event.title}`}><span className="event-time">{event.time}{event.continuation && <Heart size={10} />}</span><span className="event-title">{event.title}</span></button>)}{daily.length > 2 && <button className="more-events" onClick={() => setSelected(key)}>ещё {daily.length - 2}</button>}</div></div>; })}</div><div className="calendar-footer"><span><span className="mini-heart">♡</span> Свидание с продолжением</span><span>Все ваши планы в одном месте</span></div></div>
+        <div className="day-agenda"><div className="section-heading"><h3>{selected === dateKey(today) ? 'Сегодня' : dateLabel(selected, { day: 'numeric', month: 'long', weekday: 'short' })}<span>{selectedEvents.length ? `${selectedEvents.length} ${selectedEvents.length === 1 ? 'встреча' : 'встречи'}` : 'Свободный день'}</span></h3><button className="text-button" onClick={() => setForm({ date: selected })}><Plus size={15} />Добавить</button></div>{selectedEvents.length ? selectedEvents.map(event => <button key={event.id} className="agenda-event" onClick={() => setDetail(event)}><span className={`agenda-icon ${event.category}`}>{(() => { const Icon = categories[event.category].icon; return <Icon size={20} />; })()}</span><span className="agenda-title"><strong>{event.title}</strong><span>{event.location || categories[event.category].label}{event.continuation ? ' · с продолжением' : ''}</span></span><span className="agenda-time">{event.time}</span><ChevronRight size={16} /></button>) : <div className="empty-day"><span>☁</span><p>Немного свободного времени для чего-то хорошего.<button onClick={() => setForm({ date: selected })}>Может, запланируем свидание?</button></p></div>}</div></section>
+        <aside className="right-column"><section className="next-date-card"><div className="card-label"><span className="category-dot date" />БЛИЖАЙШЕЕ СВИДАНИЕ<span>♡</span></div>{upcoming ? <><div className="date-illustration" aria-hidden="true"><div className="art-orbit" /><span className="art-spark one">✦</span><span className="art-spark two">✳︎</span><div className="wine-glass left"><span /><i /></div><div className="wine-glass right"><span /><i /></div><span className="art-heart">♡</span></div><span className="upcoming-date">{dateLabel(upcoming.date, { weekday: 'short', day: 'numeric', month: 'long' })}</span><h3>{upcoming.title}</h3><div className="upcoming-meta"><span><Clock3 size={14} />{upcoming.time}</span>{upcoming.location && <span><MapPin size={14} />{upcoming.location}</span>}</div>{upcoming.continuation && <div className="continuation-tag"><Heart size={13} />И немного времени только для нас</div>}<button className="button card-button" onClick={() => setDetail(upcoming)}>Посмотреть план<ArrowRight size={16} /></button></> : <div className="no-upcoming"><Heart size={42} strokeWidth={1} /><h3>Самое время для свидания</h3><p>Найдите маленький повод побыть вместе.</p><button className="button card-button" onClick={() => setForm({})}>Создать первый план<Plus size={16} /></button></div>}</section>
+        <section className="idea-teaser"><div className="card-label"><Lightbulb size={15} />ИДЕЯ НЕДЕЛИ<Sparkles size={16} /></div><div className="idea-emoji">🥐<span>✧</span></div><h3>Завтрак чуть дольше</h3><p>Никуда не спешить. Приготовить кофе. И просто быть рядом.</p><button className="text-button" onClick={() => useIdea(ideas[3])}>Хочу такое свидание<ArrowRight size={15} /></button></section>
+        <div className="little-reminder"><span>✳︎</span><p>Не обязательно придумывать<br />что-то особенное.<br /><strong>Вы уже есть друг у друга.</strong></p></div></aside></div>}
+      {page === 'ideas' && <><div className="ideas-filter"><button className={filter === 'all' ? 'selected' : ''} onClick={() => setFilter('all')}>Все идеи</button>{Object.entries(categories).map(([key, item]) => <button className={filter === key ? 'selected' : ''} key={key} onClick={() => setFilter(key as Category)}><item.icon size={16} />{item.label}</button>)}</div><div className="ideas-grid">{ideas.filter(idea => filter === 'all' || idea.category === filter).map(idea => <article className={`idea-card ${idea.category}`} key={idea.title}><div className="idea-art"><span>{idea.emoji}</span><span className="idea-art-star">✦</span></div><span className="idea-tag">{idea.tag}</span><h2>{idea.title}</h2><p>{idea.description}</p><button className="button secondary" onClick={() => useIdea(idea)}>В наш календарь<Plus size={16} /></button></article>)}</div></>}
+      {page === 'history' && <><div className="history-summary"><Heart size={25} /><div><strong>{completed.length} {completed.length === 1 ? 'сохранённый момент' : 'сохранённых моментов'}</strong><span>У каждой встречи есть своя история. Личные заметки — внутри.</span></div></div>{completed.length ? <div className="history-list">{completed.map(event => <button className="history-event" key={event.id} onClick={() => setDetail(event)}><span className={`history-symbol ${event.category}`}>{event.category === 'date' ? '♡' : event.category === 'home' ? '☕' : '✳︎'}</span><span className="history-text"><span>{dateLabel(event.date)}</span><h3>{event.title}</h3><p>{event.note || event.location || 'Маленький момент вашей общей истории'}</p></span><span className="history-open">Вспомнить<ArrowRight size={17} /></span></button>)}</div> : <div className="empty-history"><Heart size={48} strokeWidth={1} /><h2>Ваша история только начинается</h2><p>После свидания нажмите «Встреча состоялась»,<br />и этот момент останется здесь.</p><button className="button primary" onClick={() => { setPage('calendar'); setForm({}); }}>Запланировать свидание<Plus size={16} /></button></div>}</>}
+      <footer className="main-footer"><span>С любовью к вашему времени.</span><span>вдвоём <Heart size={12} /></span></footer></main>
+    </div>
+    {form && <EventForm initial={form} defaultDate={selected} onClose={() => setForm(null)} onSave={saveEvent} demo={demo} />}
+    {activeDetail && !form && <EventDetail key={activeDetail.id} event={activeDetail} demo={demo} demoNotes={notes} onClose={() => setDetail(null)} onEdit={() => { setForm(activeDetail); setDetail(null); }} onDelete={() => deleteEvent(activeDetail)} onComplete={() => completeEvent(activeDetail)} />}
+    {pairModal && <Modal title={session ? partner ? 'Ваше пространство для двоих' : 'Пригласите любимого человека' : 'Начнём вашу историю'} onClose={() => setPairModal(false)}><div className="pair-modal-art"><span className="pair-art-heart">♡</span><span>✦</span><Users size={40} strokeWidth={1.3} /><span>✧</span></div>{session ? partner ? <><p className="pair-intro"><strong>{me?.name} и {partner.name}</strong><br />Один календарь. Ваши встречи и общие планы.</p><div className="pair-info"><Wifi size={18} /><p>Планы синхронизируются между вашими браузерами. Личные заметки доступны только их автору.</p></div><button className="button primary full-width" onClick={() => setPairModal(false)}>Вернуться к нашим планам</button></> : <><p className="pair-intro">Отправьте эту ссылку партнёру.<br />После подключения у вас будет один календарь.</p>{inviteLink ? <><label>Ваша ссылка-приглашение<div className="invite-input"><input value={inviteLink} readOnly onFocus={e => e.target.select()} aria-label="Ссылка-приглашение" /><button className="icon-button" aria-label="Скопировать приглашение" onClick={copyInvite}><Copy size={18} /></button></div></label><button className="button primary full-width" onClick={copyInvite}><Link2 size={17} />Скопировать ссылку</button><p className="microcopy invite-warning">Ссылка действует 7 дней и только для одного партнёра. Отправляйте её лично: она даёт доступ к общим планам. Вход сохраняется в этом браузере.</p></> : <p className="muted">{pairBusy ? 'Создаём приглашение…' : 'Не удалось получить ссылку.'}</p>}</> : <form onSubmit={connectPair}><p className="pair-intro">Один календарь для двух людей.<br />И чуть больше времени друг для друга.</p><div className="pair-tabs"><button type="button" className={pairMode === 'create' ? 'active' : ''} onClick={() => setPairMode('create')}>Создать нашу пару</button><button type="button" className={pairMode === 'join' ? 'active' : ''} onClick={() => setPairMode('join')}>У меня приглашение</button></div><label>Как вас зовут?<input required maxLength={40} placeholder="Ваше имя" value={name} onChange={e => setName(e.target.value)} /></label>{pairMode === 'join' && <label>Приглашение от партнёра<input required maxLength={300} placeholder="Вставьте ссылку-приглашение" value={inviteInput} onChange={e => setInviteInput(e.target.value)} /></label>}<p className="microcopy">{pairMode === 'create' ? 'Начнём с чистого календаря. Примеры из демо переноситься не будут.' : 'Планы партнёра появятся после подключения.'}</p><button className="button primary full-width" disabled={pairBusy}>{pairBusy ? 'Подключаем…' : pairMode === 'create' ? 'Создать общий календарь' : 'Присоединиться'}<ArrowRight size={17} /></button></form>}{pairError && <p className="error" role="alert">{pairError}</p>}</Modal>}
+    {toast && <div className="toast" role="status"><Check size={18} /><span>{toast}</span><button aria-label="Закрыть уведомление" onClick={() => setToast('')}><X size={16} /></button></div>}
+  </div>;
+}
