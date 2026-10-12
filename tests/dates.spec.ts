@@ -74,7 +74,8 @@ test('archived date module: private draft, deep editable branches, live partner 
     await alice.getByRole('button', { name: 'Закрыть', exact: true }).click();
     await alice.getByRole('button', { name: 'Запланировать свидание', exact: true }).click();
     await alice.getByRole('group', { name: 'Тип встречи' }).getByRole('button', { name: 'Секс', exact: true }).click();
-    await alice.getByLabel('Название', { exact: true }).fill('Отдельный интимный план');
+    await expect(alice.getByLabel('Название', { exact: true })).toHaveCount(0);
+    await alice.getByLabel('Тип секса', { exact: true }).selectOption('vaginal');
     await alice.getByRole('button', { name: 'Добавить план секса', exact: true }).click();
     await alice.getByRole('group', { name: 'Фильтр календаря' }).getByRole('button', { name: /Все встречи/ }).click();
     await expect(alice.locator('.calendar-event.kind-date')).toHaveCount(1);

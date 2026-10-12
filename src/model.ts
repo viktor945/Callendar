@@ -1,7 +1,8 @@
+import type { SexType } from './features/intimacy/sexTypes';
 export type Category = 'date' | 'home' | 'adventure';
 export type EventKind = 'date' | 'intimacy';
 export type DateEvent = {
-  id: string; version: number; kind: EventKind; tags: string[]; positions?: string[]; linkedDateId: string | null;
+  id: string; version: number; kind: EventKind; sexType?: SexType | null; tags: string[]; positions?: string[]; linkedDateId: string | null;
   title: string; date: string; time: string; location: string; category: Category;
   note: string; status: 'planned' | 'completed';
   continuation: { title: string; time: string; wishes: string } | null;

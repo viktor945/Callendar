@@ -53,3 +53,15 @@
 .tag-picker button { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
 .detail-positions .pill { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
 .catalog-shuffle { margin-bottom:4px; }
+
+.sex-extras { border:1px solid #eadfe9; border-radius:13px; padding:16px; margin:20px 0; }
+.sex-extras > summary { cursor:pointer; font-size:12px; font-weight:700; color:#856489; min-height:28px; }
+.sex-extras > summary > span { display:block; font-size:10px; font-weight:400; color:#a28ba4; margin:5px 0 0 14px; }
+.sex-extras[open] > summary { margin-bottom:20px; }
+.sex-type-detail { font-size:12px; color:#997891; margin:14px 0 19px; }
+.position-group { margin:19px 0; }.position-group h4 { color:#8e6b8b; font-size:12px; margin-bottom:10px; }
+.position-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+.position-choice { display:flex; align-items:center; gap:10px; padding:13px; border:1px solid #e7dce8; border-radius:12px; background:#fff; color:#956b85; text-align:left; min-height:58px; }
+.position-choice > span:nth-child(2) { flex:1; min-width:0; overflow-wrap:anywhere; font-size:12px; }.position-choice > svg { flex-shrink:0; }
+.position-choice.chosen { background:#faeaf2; border-color:#c592ac; }.position-monogram { display:flex; align-items:center; justify-content:center; border-radius:10px; width:34px; height:34px; flex-shrink:0; background:#f1e6f1; color:#af83a1; font-size:17px; }
+@media(max-width:620px) { .position-grid { grid-template-columns:1fr; }.sex-extras { padding:15px; }.sex-extras > summary { min-height:44px; } }

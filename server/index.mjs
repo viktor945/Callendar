@@ -6,6 +6,7 @@ import { dirname, resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dateModule } from './dates.mjs';
 import { pushModule } from './push.mjs';
+import { sexTypes, sexTitle } from '../src/features/intimacy/sexTypes.ts';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 const secret = () => randomBytes(24).toString('base64url');
@@ -20,11 +21,16 @@ function eventInput(body) {
   if (!['date', 'intimacy'].includes(kind)) fail(400, 'Выберите тип встречи.');
   const date = text(body.date, 10, true);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) fail(400, 'Укажите корректную дату.');
-  const time = text(body.time ?? '', 5, kind === 'date' || body.status !== 'completed');
+  const time = text(body.time ?? '', 5, kind === 'date');
   if (time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) fail(400, 'Укажите корректное время.');
   const category = body.category ?? (kind === 'intimacy' ? 'home' : undefined);
   if (!['date', 'home', 'adventure'].includes(category)) fail(400, 'Выберите формат свидания.');
   if (!['planned', 'completed'].includes(body.status)) fail(400, 'Некорректный статус.');
+  const sexType = kind === 'intimacy' ? body.sexType === undefined ? 'unspecified' : body.sexType : null;
+  if (kind === 'intimacy' && !sexTypes.some(type => type.id === sexType)) fail(400, 'Выберите корректный тип секса.');
+  if (kind === 'date' && body.sexType != null) fail(400, 'Тип секса относится к интимной записи.');
+  // Older clients may send their own title. New logs need only date and type.
+  const title = kind === 'intimacy' && (body.title == null || (typeof body.title === 'string' && !body.title.trim())) ? sexTitle(sexType) : text(body.title, 100, true);
   let continuation = null;
   if (kind === 'intimacy' && body.continuation != null) fail(400, 'Продолжение относится к свиданию.');
   if (body.continuation != null) {
@@ -40,7 +46,7 @@ function eventInput(body) {
   if (kind === 'date' && positions.length) fail(400, 'Позы относятся к записи секса.');
   const linkedDateId = body.linkedDateId ?? null;
   if (linkedDateId !== null && (kind !== 'intimacy' || typeof linkedDateId !== 'string' || !/^[a-f0-9-]{36}$/.test(linkedDateId))) fail(400, 'Проверьте связанное свидание.');
-  return { title: text(body.title, 100, true), date, time, location: text(body.location ?? '', 200), category, note: text(body.note ?? '', 2000), status: body.status, continuation, kind, tags: [...new Set(tags.map(tag => tag.trim()))], positions: [...new Set(positions.map(value => value.trim()))], linkedDateId };
+  return { title, date, time, sexType, location: text(body.location ?? '', 200), category, note: text(body.note ?? '', 2000), status: body.status, continuation, kind, tags: [...new Set(tags.map(tag => tag.trim()))], positions: [...new Set(positions.map(value => value.trim()))], linkedDateId };
 }
 
 export async function createApp({ databasePath = process.env.DATABASE_PATH || resolve('.data/calendar.sqlite'), serveFrontend = true, pushOptions = {} } = {}) {

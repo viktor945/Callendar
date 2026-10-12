@@ -3,6 +3,7 @@ import { CalendarDays, Check, Clock3, Heart, LockKeyhole, MapPin, Trash2 } from 
 import { Modal } from '../../components/Modal';
 import { api } from '../../lib/api';
 import { dateLabel, type DateEvent, type PersonalNote } from '../../model';
+import { sexTypeLabel } from '../intimacy/sexTypes';
 
 export function EventDetail({ event, demo, onClose, onEdit, onDelete, onComplete, onContinuation, demoNotes, events }: { event: DateEvent; demo: boolean; onClose: () => void; onEdit: () => void; onDelete: () => Promise<void>; onComplete: () => Promise<void>; onContinuation: () => void; demoNotes: { current: Record<string, PersonalNote> }; events: DateEvent[] }) {
   const [note, setNote] = useState('');
@@ -27,6 +28,7 @@ export function EventDetail({ event, demo, onClose, onEdit, onDelete, onComplete
   return <Modal title={event.title} onClose={onClose} wide>
     <div className="detail-tags"><span className={`pill ${intimacy ? 'intimacy' : event.category}`}>{intimacy ? 'Секс' : { date: 'Свидание', home: 'Дома вдвоём', adventure: 'Приключение' }[event.category]}</span><span className="pill neutral">{event.status === 'completed' ? 'Встреча состоялась' : 'Запланировано'}</span></div>
     <div className="detail-meta"><span><CalendarDays size={18} />{dateLabel(event.date, { weekday: 'long', day: 'numeric', month: 'long' })}</span>{event.time && <span><Clock3 size={18} />{event.time}</span>}{event.location && <span><MapPin size={18} />{event.location}</span>}</div>
+    {intimacy && <p className="sex-type-detail">Тип секса: <strong>{sexTypeLabel(event.sexType)}</strong></p>}
     {event.tags.length > 0 && <div className="detail-tag-list">{event.tags.map(tag => <span className="pill intimacy" key={tag}>{tag}</span>)}</div>}
     {!!event.positions?.length && <section className="detail-positions"><h3>Позы · ваш выбор</h3><div className="detail-tag-list">{event.positions.map(value => <span className="pill intimacy" key={value}>{value}</span>)}</div></section>}
     {event.note && <p className="detail-note">{event.note}</p>}

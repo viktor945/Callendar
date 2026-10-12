@@ -151,7 +151,7 @@ export default function App() {
 
   return <div className="app-shell">
     <aside className="sidebar"><a href="#" className="brand" onClick={e => { e.preventDefault(); setPage('calendar'); }}><span className="brand-symbol"><Heart size={22} fill="currentColor" /></span>вдвоём<span className="brand-dot">.</span></a><div className="space-label">ВАШЕ ОБЩЕЕ ПРОСТРАНСТВО</div>
-      <nav aria-label="Основная навигация">{([{ id: 'calendar', title: 'Наш календарь', icon: CalendarDays }, { id: 'intimacy', title: 'Секс', icon: Flame }, { id: 'ideas', title: 'Идеи для свиданий', icon: Lightbulb }, { id: 'history', title: 'Наша история', icon: History }] as const).map(item => <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`} onClick={() => setPage(item.id)}><item.icon size={19} />{item.title}{page === item.id && <span className="nav-dot" />}</button>)}</nav>
+      <nav aria-label="Основная навигация">{([{ id: 'calendar', title: 'Наш календарь', icon: CalendarDays }, { id: 'intimacy', title: '18+', icon: Flame }, { id: 'ideas', title: 'Идеи для свиданий', icon: Lightbulb }, { id: 'history', title: 'Наша история', icon: History }] as const).map(item => <button key={item.id} className={`nav-item ${page === item.id ? 'active' : ''}`} onClick={() => setPage(item.id)}><item.icon size={19} />{item.title}{page === item.id && <span className="nav-dot" />}</button>)}</nav>
       <div className="sidebar-note"><div className="note-doodle">✳︎</div><p>Самое важное —<br />время друг для друга.</p><span>Остальное подождёт.</span></div>
       <div className="sidebar-bottom"><LockKeyhole size={15} /><span>Пространство только для двоих</span></div>
     </aside>

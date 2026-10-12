@@ -68,9 +68,9 @@ test('either partner logs a standalone fact without a time or second confirmatio
   } finally { clearTimeout(timeout); controller.abort(); }
 });
 
-test('intimacy input rejects invalid kinds, missing plan times and malformed tags', async t => {
+test('intimacy input rejects invalid kinds, malformed sex types and malformed tags', async t => {
   const { a } = await fixture(t);
-  for (const patch of [{ kind: 'other' }, { date: '2026-02-30' }, { status: 'planned' }, { time: '24:00' }, { tags: 'bad' }, { tags: Array(25).fill('tag') }, { tags: ['a'.repeat(41)] }, { tags: [null] }, { continuation: { title: 'bad', time: '', wishes: '' } }]) {
+  for (const patch of [{ kind: 'other' }, { date: '2026-02-30' }, { sexType: 'invalid' }, { sexType: null }, { time: '24:00' }, { tags: 'bad' }, { tags: Array(25).fill('tag') }, { tags: ['a'.repeat(41)] }, { tags: [null] }, { continuation: { title: 'bad', time: '', wishes: '' } }]) {
     assert.equal((await a.request('/events', 'POST', { ...fact, ...patch })).status, 400, JSON.stringify(patch));
   }
   assert.equal((await a.request('/events', 'POST', { ...fact, tags: ['Массаж', 'Массаж', 'Свой вариант'] })).data.tags.length, 2);
@@ -90,6 +90,24 @@ test('expanded plans and optional user position names are shared, editable and r
   assert.equal(changed.status, 200); assert.deepEqual(changed.data.positions, []);
   for (const positions of ['bad', [''], [null], ['a'.repeat(81)], Array(21).fill('name')]) assert.equal((await f.a.request('/events', 'POST', { ...fact, positions })).status, 400);
   assert.equal((await f.a.request('/events', 'POST', { ...date, positions: ['Our name'] })).status, 400);
+});
+
+test('sex facts and plans need no title or time; clinical type is shared and survives restart', async t => {
+  const f = await fixture(t);
+  const payload = { kind: 'intimacy', sexType: 'vaginal', date: '2026-10-12', status: 'completed' };
+  const saved = await f.a.request('/events', 'POST', payload);
+  assert.equal(saved.status, 201);
+  assert.equal(saved.data.title, 'Вагинальный секс'); assert.equal(saved.data.time, '');
+  assert.equal(saved.data.sexType, 'vaginal'); assert.deepEqual(saved.data.positions, []);
+  assert.deepEqual((await f.b.request('/session')).data.events[0], saved.data);
+  const planned = await f.b.request('/events', 'POST', { ...payload, sexType: 'oral', status: 'planned' });
+  assert.equal(planned.status, 201); assert.equal(planned.data.time, '');
+  const changed = await f.b.request(`/events/${saved.data.id}`, 'PATCH', { ...payload, sexType: 'anal', version: saved.data.version });
+  assert.equal(changed.status, 200); assert.equal(changed.data.title, 'Анальный секс');
+  await f.restart();
+  assert.equal((await f.a.request('/session')).data.events.find(event => event.id === saved.data.id).sexType, 'anal');
+  assert.equal((await f.a.request('/events', 'POST', { ...date, title: '' })).status, 400);
+  assert.equal((await f.a.request('/events', 'POST', { ...date, sexType: 'oral' })).status, 400);
 });
 
 test('personal ratings stay private, survive restart and are deleted with their event', async t => {
@@ -123,7 +141,7 @@ test('linked intimacy has an independent status and remains after deleting its d
   assert.equal((await f.a.request('/events', 'POST', { ...fact, linkedDateId: event.id })).status, 400);
   await f.outsider.request('/pairs', 'POST', { name: 'Другой' });
   assert.equal((await f.outsider.request('/events', 'POST', { ...fact, linkedDateId: dinner.id })).status, 404);
-  assert.equal((await f.a.request(`/events/${dinner.id}`, 'PATCH', { ...dinner, kind: 'intimacy' })).status, 409);
+  assert.equal((await f.a.request(`/events/${dinner.id}`, 'PATCH', { ...dinner, kind: 'intimacy', sexType: 'unspecified' })).status, 409);
   await f.a.request(`/events/${dinner.id}`, 'PATCH', { ...dinner, status: 'completed' });
   assert.equal((await f.b.request('/session')).data.events.find(old => old.id === event.id).version, 1);
   assert.equal((await f.b.request(`/events/${dinner.id}`, 'DELETE', { version: 1 })).status, 409);
