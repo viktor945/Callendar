@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles.css';
 import './features/intimacy/catalog.css';
+import './phone.css';
 import { staticPreview } from './lib/api';
 import { registerWorker } from './lib/pwa';
 

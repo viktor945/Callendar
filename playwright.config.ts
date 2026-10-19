@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
-  testMatch: ['calendar.spec.ts', 'dates.spec.ts', 'mobile.spec.ts'],
+  testMatch: ['calendar.spec.ts', 'dates.spec.ts', 'mobile.spec.ts', 'phone-usability.spec.ts'],
   fullyParallel: false,
   workers: 1,
   use: { baseURL: 'http://127.0.0.1:3100', headless: true, launchOptions: { ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) }, trace: 'retain-on-failure' },

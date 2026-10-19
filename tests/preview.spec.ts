@@ -78,10 +78,12 @@ test('preview lets users switch relationship focus, log intimacy and try private
   await expect(page.getByLabel('Личная оценка')).toHaveValue('4');
   await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
   await page.getByRole('button', { name: '18+', exact: true }).click();
+  await page.locator('.rhythm-details > summary').click();
   await expect(page.locator('.rhythm-chart')).toBeVisible();
   await expect(page.locator('.frequency-setting')).toContainText('2 в неделю');
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.locator('.sex-ready-presets > summary').click();
   await page.locator('.intimacy-ideas').getByRole('button', { name: 'В наш календарь', exact: true }).first().click();
   await expect(page.getByLabel('Название', { exact: true })).toHaveCount(0);
   await page.getByLabel('Тип секса', { exact: true }).selectOption('vaginal');

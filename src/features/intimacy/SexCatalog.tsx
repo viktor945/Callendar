@@ -3,7 +3,7 @@ import { Check, Search, X } from 'lucide-react';
 import { sexCatalog, catalogTags } from './catalog';
 
 export function SexCatalog({ selected, onToggle, compact = false }: { selected: string[]; onToggle: (tag: string) => void; compact?: boolean }) {
-  const [categoryId, setCategoryId] = useState<string | null>(compact ? 'atmosphere' : null);
+  const [categoryId, setCategoryId] = useState<string>('atmosphere');
   const [search, setSearch] = useState('');
   const query = search.trim().toLocaleLowerCase('ru');
   const categories = sexCatalog.filter(category => query ? `${category.title} ${category.groups.map(group => `${group.title} ${group.options.join(' ')}`).join(' ')}`.toLocaleLowerCase('ru').includes(query) : category.id === categoryId);
@@ -11,7 +11,7 @@ export function SexCatalog({ selected, onToggle, compact = false }: { selected: 
     <div className="catalog-search"><Search size={17} /><input aria-label="Поиск настроений и вариантов" placeholder="Свет, массаж, утро, сюрприз…" value={search} onChange={e => setSearch(e.target.value)} />{search && <button type="button" aria-label="Очистить поиск" onClick={() => setSearch('')}><X size={17} /></button>}<span>{catalogTags.length} вариантов</span></div>
     {!query && <div className="catalog-categories" role="group" aria-label="Сферы настроений">{sexCatalog.map(category => {
       const count = category.groups.flatMap(group => group.options).filter(option => selected.includes(option)).length;
-      return <button type="button" key={category.id} aria-pressed={categoryId === category.id} className={`catalog-category tone-${category.color} ${categoryId === category.id ? 'chosen' : ''}`} onClick={() => setCategoryId(categoryId === category.id ? null : category.id)}><span className="catalog-emoji">{category.emoji}</span><strong>{category.title}</strong><span>{compact ? '12 вариантов' : category.description}</span>{count > 0 && <i>{count} выбрано</i>}</button>;
+      return <button type="button" key={category.id} aria-label={category.title} aria-pressed={categoryId === category.id} className={`catalog-category tone-${category.color} ${categoryId === category.id ? 'chosen' : ''}`} onClick={() => setCategoryId(category.id)}><span className="catalog-emoji">{category.emoji}</span><strong>{{ atmosphere: 'Атмосфера', rhythm: 'Темп', touch: 'Нежность', play: 'Игра', place: 'Место', rituals: 'Ритуалы', talk: 'Желания', discover: 'Новое' }[category.id]}</strong><span>{compact ? '12 вариантов' : category.description}</span>{count > 0 && <i>{count} выбрано</i>}</button>;
     })}</div>}
     <div className="catalog-results">{categories.map(category => <section className={`catalog-sphere tone-${category.color}`} key={category.id}><div className="catalog-sphere-heading"><span>{category.emoji}</span><h4>{category.title}</h4></div>{category.groups.map(group => {
       const options = group.options.filter(option => !query || `${category.title} ${group.title} ${option}`.toLocaleLowerCase('ru').includes(query));
