@@ -118,16 +118,16 @@ button:focus-visible, summary:focus-visible { outline: 3px solid #a58ad0; outlin
 .phone-app .date-module .page-editor-head .icon-button { flex-shrink: 0; }
 .phone-app.flow-focused .date-module .dates-toolbar { position: sticky; top: env(safe-area-inset-top); z-index: 30; background: #fbf9fd; padding: 4px 0; }
 
-/* Two stable rows keep mixed days readable on narrow phones. */
-.phone-day { min-height: 111px; gap: 5px; padding: 8px 1px; }
+/* One compact marker row preserves the original calendar height. */
+.phone-day { height: 79px; min-height: 79px; gap: 5px; padding: 7px 1px; }
 .phone-day.has-date { background: #e5edff; border-color: #b5ccff; color: #254b91; }
 .phone-day.has-intimacy { background: #ffe4ef; border-color: #f6b3d0; color: #9b285b; }
 .phone-day.has-date.has-intimacy { background: linear-gradient(155deg, #e0eaff 35%, #ffdfed 85%); border-color: #c7b4eb; color: #5d347f; }
 .phone-day.chosen { background: #7541ad; border-color: #7541ad; color: white; }
-.phone-day .day-markers { display: grid; grid-template-rows: 23px 23px; gap: 3px; width: 100%; max-width: 40px; font-size: 14px; }
-.phone-day .day-badge { display: flex; align-items: center; justify-content: center; gap: 2px; border-radius: 7px; line-height: 1; }
-.phone-day .date-badge { grid-row: 1; background: #2258ba; color: white; }
-.phone-day .intimacy-badge { grid-row: 2; background: #b51e63; color: white; }
-.phone-day .day-badge b { font-size: 12px; font-weight: 800; }
+.phone-day .day-markers { display: flex; justify-content: center; height: 18px; width: 100%; max-width: 40px; font-size: 12px; }
+.phone-day .day-badge { display: flex; align-items: center; justify-content: center; gap: 1px; padding: 2px; border-radius: 5px; line-height: 1; }
+.phone-day .date-badge { background: #2258ba; color: white; }
+.phone-day .intimacy-badge { background: #b51e63; color: white; }
+.phone-day .day-badge b { font-size: 11px; font-weight: 800; }
 .phone-day.chosen .day-badge { outline: 1px solid #ffffff80; }
 .calendar-marker-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 12px; margin: 4px 0 12px; color: #62516f; font-size: 12px; }
