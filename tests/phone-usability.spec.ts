@@ -71,3 +71,36 @@ test('date search and horizontal page steps avoid scrolling past the editor menu
   await page.getByRole('button', { name: 'К атмосферам', exact: true }).click();
   await expect(page.getByRole('navigation', { name: 'Основная навигация' })).toBeVisible();
 });
+
+test('calendar shows both event types and counts on one day across phone widths', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Месяц', exact: true }).click();
+  const mixed = page.locator('.phone-day.has-date.has-intimacy').first();
+  await expect(mixed.locator('.date-badge')).toHaveText('💙1');
+  await expect(mixed.locator('.intimacy-badge')).toHaveText('🔥1');
+  await mixed.click();
+  await expect(page.locator('.phone-event')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Запланировать свидание', exact: true }).click();
+  await page.getByLabel('Название', { exact: true }).fill('Ещё одно свидание');
+  await page.getByRole('button', { name: 'Добавить свидание', exact: true }).click();
+  const selected = page.locator('.phone-day.chosen');
+  await expect(selected.locator('.date-badge')).toHaveText('💙2');
+  await expect(selected.locator('.intimacy-badge')).toHaveText('🔥1');
+  await expect(selected).toHaveAccessibleName(/Свидания: 2 · 18\+: 1/);
+  await page.getByRole('button', { name: 'Свидания', exact: true }).click();
+  await expect(selected.locator('.intimacy-badge')).toBeVisible();
+  await selected.click();
+  await expect(page.locator('.phone-event')).toHaveCount(3);
+  for (const width of [320, 360, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    for (const badge of await selected.locator('.day-badge').all()) {
+      expect(await badge.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: 'test-results/calendar-event-badges.png', fullPage: true });
+  await page.getByRole('button', { name: 'Неделя', exact: true }).click();
+  await expect(page.locator('.phone-day.chosen .date-badge')).toHaveText('💙2');
+});
