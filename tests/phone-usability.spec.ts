@@ -104,3 +104,24 @@ test('calendar shows both event types and counts on one day across phone widths'
   await page.getByRole('button', { name: 'Неделя', exact: true }).click();
   await expect(page.locator('.phone-day.chosen .date-badge')).toHaveText('💙+2');
 });
+
+test('phone calendar guides unsigned users into their pair and exposes subscription after login', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Приложение и уведомления', exact: true }).click();
+  const calendar = page.locator('.calendar-connection');
+  await expect(calendar).toContainText('Вы пока не вошли в календарь пары');
+  await expect(calendar).not.toContainText('Автоматическая подписка требует серверной версии');
+  await page.getByRole('button', { name: 'Войти и подключить календарь', exact: true }).click();
+  await page.getByLabel('Как вас зовут?').fill('Тест подписки');
+  await page.getByRole('button', { name: 'Создать общий календарь', exact: true }).click();
+  await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
+  // Local HTTP cannot provide webcal; emulate the HTTPS capability already tested
+  // against the real Cloudflare runtime in tests/cloudflare/api.test.mjs.
+  await page.route('**/api/calendar/subscription', async route => {
+    await route.fulfill({ json: route.request().method() === 'POST' ? { url: 'https://calendar.example/api/calendar/feed/test-link.ics' } : { enabled: true, active: false } });
+  });
+  await page.getByRole('button', { name: 'Приложение и уведомления', exact: true }).click();
+  await calendar.getByRole('button', { name: 'Подключить календарь телефона', exact: true }).click();
+  await expect(calendar.getByRole('link', { name: 'Открыть подписку на iPhone', exact: true })).toHaveAttribute('href', 'webcal://calendar.example/api/calendar/feed/test-link.ics');
+  await expect(calendar.getByRole('textbox', { name: 'Ссылка подписки', exact: true })).toHaveValue('https://calendar.example/api/calendar/feed/test-link.ics');
+});
