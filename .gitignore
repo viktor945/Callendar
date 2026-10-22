@@ -8,3 +8,5 @@ test-results/
 preview-test-results/
 playwright-report/
 .preview-build/
+
+.backups/

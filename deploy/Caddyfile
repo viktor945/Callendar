@@ -1,0 +1,8 @@
+{$SITE_HOST} {
+    # Do not enable access logs: calendar subscription URLs contain secret tokens.
+    encode gzip
+    reverse_proxy app:3000 {
+        # Deliver partner changes immediately over SSE.
+        flush_interval -1
+    }
+}
