@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Bell, Check, Download, Share, Smartphone } from 'lucide-react';
 import { Modal } from '../../components/Modal';
+import { CalendarConnection } from '../calendar/CalendarConnection';
+import type { DateEvent } from '../../model';
 import { api } from '../../lib/api';
 import { applicationKey, installApp, isIOS, isStandalone, registerWorker } from '../../lib/pwa';
 
-export function DeviceSettings({ demo, onClose }: { demo: boolean; onClose: () => void }) {
+export function DeviceSettings({ demo, events, onClose }: { demo: boolean; events: DateEvent[]; onClose: () => void }) {
   const [config, setConfig] = useState<{ enabled: boolean; publicKey: string | null } | null>(demo ? { enabled: false, publicKey: null } : null);
   const [subscription, setSubscription] = useState<PushSubscription | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
@@ -49,6 +51,7 @@ export function DeviceSettings({ demo, onClose }: { demo: boolean; onClose: () =
     catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   }
   return <Modal title="На телефоне и компьютере" onClose={onClose} wide><div className="device-settings">
+    <CalendarConnection demo={demo} events={events} />
     <section className="device-card"><span className="device-icon"><Smartphone size={25} /></span><h3>{standalone ? 'Уже на экране «Домой»' : 'Вдвоём — рядом, как приложение'}</h3><p>Открывайте календарь с домашнего экрана, в отдельном окне без панели браузера.</p>
       {standalone ? <p className="device-success"><Check size={16} /> Сайт открыт как приложение</p> : ios ? <ol><li>Откройте опубликованный сайт в Safari.</li><li>Нажмите <Share size={14} /> «Поделиться» → «На экран Домой».</li><li>Откройте «Вдвоём» с новой иконки и подключите вашу пару внутри приложения.</li></ol> : <><button className="button secondary" onClick={async () => { if (!await installApp()) setNotice('В меню браузера выберите «Установить приложение» или «Добавить на главный экран».'); }}><Download size={16} />Установить приложение</button><p className="microcopy">На iPhone: Safari → «Поделиться» → «На экран Домой».</p></>}
     </section>

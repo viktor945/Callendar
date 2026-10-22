@@ -206,3 +206,27 @@ test('18+ quick log asks for date and type with no title or required extras', as
   await expect(page.locator('.calendar-event', { hasText: 'Оральный секс' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('phone calendar export downloads private planned events with reminders', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Приложение и уведомления', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Календарь телефона', exact: true })).toBeVisible();
+  await expect(page.locator('.calendar-connection')).toContainText('Автоматическая подписка требует серверной версии');
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: /Скачать календарь .ics/ }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('vdvoem.ics');
+  const content = readFileSync((await download.path())!, 'utf8');
+  expect(content).toContain('BEGIN:VCALENDAR');
+  expect(content).toContain('SUMMARY:Время для двоих');
+  expect(content).toContain('TRIGGER:-PT1H');
+  expect(content).not.toContain('Время только для нас');
+  expect(content).not.toContain('Свечи');
+  expect(content).not.toContain('Наше медленное утро');
+  await expect(page.locator('.calendar-connection')).toContainText('Это разовая копия');
+  for (const width of [320, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});

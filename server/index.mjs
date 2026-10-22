@@ -6,6 +6,7 @@ import { dirname, resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dateModule } from './dates.mjs';
 import { pushModule } from './push.mjs';
+import { calendarModule } from './calendar.mjs';
 import { sexTypes, sexTitle } from '../src/features/intimacy/sexTypes.ts';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -109,6 +110,7 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
     if (!event) fail(404, 'Встреча не найдена.');
     return event;
   }
+  const handleCalendar = calendarModule({ db, origin: publicOrigin, fail });
   const push = pushModule({ db, fail, origin: publicOrigin, ...pushOptions });
   const handleDates = dateModule({ db, broadcast, fail, notifyPartner: push.notifyPartner });
   let vite;
@@ -154,6 +156,7 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
         if (!body || typeof body !== 'object' || Array.isArray(body)) fail(400, 'Некорректный запрос.');
       }
       const member = authenticate(req);
+      if (handleCalendar({ member, pathname: url.pathname, method: req.method, reply, res })) return;
       if (url.pathname === '/api/health' && req.method === 'GET') return reply(200, { ok: true });
       if (url.pathname === '/api/session' && req.method === 'GET') return reply(200, member ? state(member) : null);
       if (url.pathname === '/api/pairs' && req.method === 'POST') {
