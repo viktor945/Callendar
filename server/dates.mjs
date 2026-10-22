@@ -1,3 +1,4 @@
+import { transaction as atomic } from './transaction.mjs';
 import { randomUUID } from 'node:crypto';
 import { validateScenario, resolveAnswers, answerText } from '../src/features/dates/scenario.ts';
 
@@ -37,7 +38,7 @@ export function dateModule({ db, broadcast, fail, notifyPartner = () => {} }) {
     if (typeof versionId !== 'string' || versionId !== (run?.version_id || row.published_id)) fail(409, 'Версия приглашения изменилась. Откройте его снова.');
     return snapshot(versionId);
   }
-  const transaction = action => { db.exec('BEGIN'); try { const result = action(); db.exec('COMMIT'); return result; } catch (error) { db.exec('ROLLBACK'); throw error; } };
+  const transaction = action => atomic(db, action);
   return function handle({ member, pathname, method, body, reply }) {
     if (!pathname.startsWith('/api/dates/')) return false;
     if (pathname === '/api/dates/inbox' && method === 'GET') {

@@ -72,15 +72,24 @@ export default function App() {
   useEffect(() => { void load(); if (!staticPreview && location.hash.startsWith('#invite=')) setPairModal(true); }, []);
   useEffect(() => {
     if (!session?.memberId) return;
-    const source = new EventSource('/api/stream');
+    let source: EventSource | undefined, poll: ReturnType<typeof setInterval> | undefined;
     let active = true;
     const sync = () => { api<Session | null>('/session').then(data => { if (active) { setSession(data); setConnection('live'); } }).catch(() => { if (active) setConnection('offline'); }); };
-    source.addEventListener('ready', sync);
-    source.addEventListener('change', sync);
-    source.onerror = () => setConnection('offline');
+    api<{ sync: 'sse' | 'poll'; intervalMs: number }>('/runtime').catch(() => ({ sync: 'sse' as const, intervalMs: 15000 })).then(config => {
+      if (!active) return;
+      if (config.sync === 'poll') {
+        sync();
+        poll = setInterval(() => { if (document.visibilityState === 'visible') sync(); }, Math.max(15000, config.intervalMs));
+      } else {
+        source = new EventSource('/api/stream');
+        source.addEventListener('ready', sync);
+        source.addEventListener('change', sync);
+        source.onerror = () => { if (active) setConnection('offline'); };
+      }
+    });
     const onVisible = () => { if (document.visibilityState === 'visible') sync(); };
     document.addEventListener('visibilitychange', onVisible);
-    return () => { active = false; source.close(); document.removeEventListener('visibilitychange', onVisible); };
+    return () => { active = false; source?.close(); if (poll) clearInterval(poll); document.removeEventListener('visibilitychange', onVisible); };
   }, [session?.memberId]);
   useEffect(() => { window.scrollTo({ top: 0 }); }, [page]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 4500); return () => clearTimeout(timer); }, [toast]);

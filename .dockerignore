@@ -16,3 +16,9 @@ playwright-report
 *.key
 
 .backups/
+
+.wrangler
+.worker-build
+.dev.vars*
+
+cloudflare-test-results/

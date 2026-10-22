@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vdvoem-calendar",
+  "main": "worker/index.mjs",
+  "compatibility_date": "2026-10-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "CALENDAR", "class_name": "CalendarServer" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CalendarServer"] }],
+  "observability": { "enabled": false }
+}

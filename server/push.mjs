@@ -1,7 +1,7 @@
 import webPush from 'web-push';
 
 // Notifications contain no event names, types, notes, positions or ratings.
-export function pushModule({ db, fail, origin, send = webPush.sendNotification }) {
+export function pushModule({ db, fail, origin, send = webPush.sendNotification, waitUntil = () => {} }) {
   db.exec(`CREATE TABLE IF NOT EXISTS app_keys (name TEXT PRIMARY KEY, value TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS push_subscriptions (endpoint TEXT PRIMARY KEY, member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE, data TEXT NOT NULL, updated_at INTEGER NOT NULL);`);
   const stored = db.prepare("SELECT value FROM app_keys WHERE name = 'vapid'").get();
@@ -30,7 +30,7 @@ export function pushModule({ db, fail, origin, send = webPush.sendNotification }
         return false;
       }
     })).then(results => ({ sent: results.filter(Boolean).length, failed: results.filter(value => !value).length }));
-    pending.add(task); task.finally(() => pending.delete(task)); return task;
+    pending.add(task); waitUntil(task); task.finally(() => pending.delete(task)); return task;
   }
   function notifyPartner(member, message) {
     const rows = db.prepare('SELECT s.* FROM push_subscriptions s JOIN members m ON m.id = s.member_id WHERE m.pair_id = ? AND m.id != ? AND m.expires > ?').all(member.pair_id, member.id, Date.now());

@@ -10,3 +10,10 @@ playwright-report/
 .preview-build/
 
 .backups/
+
+.wrangler/
+.worker-build/
+.dev.vars
+.dev.vars.*
+
+cloudflare-test-results/
